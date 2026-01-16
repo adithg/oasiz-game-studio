@@ -46,6 +46,7 @@ bun install
 # 4. Start building!
 # - Game logic goes in src/main.ts
 # - HTML/CSS goes in index.html
+bun run dev
 
 # 5. Build when ready
 bun run build
@@ -66,6 +67,7 @@ cd your-game-name/
 bun install
 
 # 4. Iterate and customize!
+bun run dev
 
 # 5. Build when ready
 bun run build
