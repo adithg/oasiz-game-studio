@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, minimal-ui">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Elevator Action</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: #ffffff;
+            font-family: 'VT323', monospace;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* HUD Overlay */
+        #hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px 20px;
+            pointer-events: none;
+            display: none;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 5;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .hud-section {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .hud-label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .hud-value {
+            font-size: 18px;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .hud-value.score {
+            color: #ffd700;
+        }
+
+        .hud-value.lives {
+            color: #ff4444;
+        }
+
+        .hud-value.docs {
+            color: #44ff44;
+        }
+
+        /* Floor indicator */
+        #floorIndicator {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+            z-index: 5;
+            pointer-events: none;
+            display: none;
+        }
+
+        /* Overlays */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .content {
+            text-align: center;
+            padding: 40px;
+            max-width: 90%;
+        }
+
+        h1 {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2.5rem;
+            color: #ff4444;
+            margin-bottom: 20px;
+            text-shadow: 4px 4px 0 #880000;
+            animation: titlePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { text-shadow: 4px 4px 0 #880000, 0 0 20px rgba(255, 68, 68, 0.5); }
+            50% { text-shadow: 4px 4px 0 #880000, 0 0 40px rgba(255, 68, 68, 0.8); }
+        }
+
+        .subtitle {
+            font-family: 'VT323', monospace;
+            font-size: 1.5rem;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .mission-brief {
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            color: #44ff44;
+            margin-bottom: 30px;
+            line-height: 1.8;
+            text-align: left;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 20px;
+            border: 2px solid #44ff44;
+            background: rgba(0, 50, 0, 0.5);
+        }
+
+        .mission-brief h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        /* Buttons */
+        .btn {
+            background: #ff4444;
+            color: #fff;
+            border: none;
+            padding: 15px 40px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 4px 4px 0 #880000;
+            transition: all 0.1s ease;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 #880000;
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #880000;
+        }
+
+        /* Controls display */
+        .controls-info {
+            font-family: 'VT323', monospace;
+            font-size: 1rem;
+            color: #888;
+            margin-top: 30px;
+            line-height: 1.6;
+        }
+
+        .controls-info kbd {
+            background: #333;
+            padding: 3px 8px;
+            border: 1px solid #666;
+            border-radius: 3px;
+            color: #fff;
+        }
+
+        /* Mobile controls */
+        #mobileControls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            display: none;
+            justify-content: space-between;
+            align-items: flex-end;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .mobile-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            touch-action: manipulation;
+        }
+
+        .mobile-btn svg {
+            width: 30px;
+            height: 30px;
+            fill: rgba(255, 255, 255, 0.8);
+        }
+
+        .mobile-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 60px);
+            grid-template-rows: repeat(3, 60px);
+            gap: 5px;
+        }
+
+        .dpad .mobile-btn {
+            border-radius: 10px;
+        }
+
+        .dpad-up { grid-column: 2; grid-row: 1; }
+        .dpad-left { grid-column: 1; grid-row: 2; }
+        .dpad-right { grid-column: 3; grid-row: 2; }
+        .dpad-down { grid-column: 2; grid-row: 3; }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            width: 70px;
+            height: 70px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .action-btn.shoot {
+            background: rgba(255, 68, 68, 0.3);
+            border-color: rgba(255, 68, 68, 0.6);
+        }
+
+        .action-btn.jump {
+            background: rgba(68, 68, 255, 0.3);
+            border-color: rgba(68, 68, 255, 0.6);
+        }
+
+        /* Game Over styles */
+        .game-over-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2rem;
+            color: #ff4444;
+            margin-bottom: 20px;
+        }
+
+        .final-score {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.5rem;
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+
+        .mission-result {
+            font-family: 'VT323', monospace;
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+        }
+
+        .mission-result.success {
+            color: #44ff44;
+        }
+
+        .mission-result.failed {
+            color: #ff4444;
+        }
+
+        /* Mobile adjustments */
+        @media (pointer: coarse) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            .mission-brief {
+                font-size: 1rem;
+                padding: 15px;
+            }
+            .controls-info {
+                display: none;
+            }
+            #mobileControls {
+                display: flex;
+            }
+            #hud {
+                padding: 60px 10px 10px 10px;
+            }
+            .hud-value {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .mission-brief {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- HUD -->
+    <div id="hud">
+        <div class="hud-section">
+            <div class="hud-label">Score</div>
+            <div class="hud-value score" id="score">0</div>
+        </div>
+        <div class="hud-section">
+            <div class="hud-label">Docs</div>
+            <div class="hud-value docs" id="docs">0/0</div>
+        </div>
+        <div class="hud-section">
+            <div class="hud-label">Lives</div>
+            <div class="hud-value lives" id="lives">3</div>
+        </div>
+    </div>
+
+    <div id="floorIndicator">FLOOR 30</div>
+
+    <!-- Mobile Controls -->
+    <div id="mobileControls">
+        <div class="dpad">
+            <button class="mobile-btn dpad-up" data-key="up">
+                <svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5H7z"/></svg>
+            </button>
+            <button class="mobile-btn dpad-left" data-key="left">
+                <svg viewBox="0 0 24 24"><path d="M14 7l-5 5 5 5V7z"/></svg>
+            </button>
+            <button class="mobile-btn dpad-right" data-key="right">
+                <svg viewBox="0 0 24 24"><path d="M10 7v10l5-5-5-5z"/></svg>
+            </button>
+            <button class="mobile-btn dpad-down" data-key="down">
+                <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5H7z"/></svg>
+            </button>
+        </div>
+        <div class="action-buttons">
+            <button class="mobile-btn action-btn jump" data-key="jump">JUMP</button>
+            <button class="mobile-btn action-btn shoot" data-key="shoot">FIRE</button>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="overlay">
+        <div class="content">
+            <h1>ELEVATOR ACTION</h1>
+            <p class="subtitle">Secret Agent Mission</p>
+            <div class="mission-brief">
+                <h3>MISSION BRIEFING</h3>
+                Agent Otto, your mission:<br><br>
+                - Infiltrate the 30-story building<br>
+                - Collect SECRET DOCUMENTS from RED doors<br>
+                - Eliminate enemy agents<br>
+                - Escape via the car at ground floor<br><br>
+                Use ELEVATORS to navigate between floors.
+            </div>
+            <button class="btn" id="startButton">START MISSION</button>
+            <div class="controls-info">
+                <kbd>←</kbd> <kbd>→</kbd> Move &nbsp;|&nbsp;
+                <kbd>↑</kbd> <kbd>↓</kbd> Elevator &nbsp;|&nbsp;
+                <kbd>Z</kbd> Jump &nbsp;|&nbsp;
+                <kbd>X</kbd> Shoot
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="overlay hidden">
+        <div class="content">
+            <h2 class="game-over-title" id="gameOverTitle">MISSION FAILED</h2>
+            <div class="mission-result failed" id="missionResult">You were eliminated!</div>
+            <div class="final-score">SCORE: <span id="finalScore">0</span></div>
+            <button class="btn" id="restartButton">TRY AGAIN</button>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

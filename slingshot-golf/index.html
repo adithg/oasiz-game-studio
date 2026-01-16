@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Slingshot Golf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Lilita+One&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+      background: #87CEEB;
+      font-family: 'Fredoka', sans-serif;
+    }
+    
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #87CEEB;
+    }
+
+    /* Constrain game viewport on desktop */
+    @media (pointer: fine) {
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #5bb7e6;
+      }
+
+      #game-container {
+        width: min(1100px, 95vw);
+        height: min(680px, 92vh);
+        border-radius: 22px;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+      }
+    }
+    
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    /* Start Screen */
+    #start-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #87CEEB 0%, #98D8C8 50%, #7CB342 100%);
+      z-index: 100;
+      pointer-events: auto;
+    }
+    
+    #start-screen.hidden {
+      display: none;
+    }
+    
+    .title-container {
+      position: relative;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    
+    .game-title {
+      font-family: 'Lilita One', cursive;
+      font-size: clamp(42px, 10vw, 80px);
+      color: #fff;
+      text-shadow: 
+        4px 4px 0 #2E7D32,
+        6px 6px 0 rgba(0,0,0,0.2);
+      letter-spacing: 2px;
+      animation: titleBounce 2s ease-in-out infinite;
+    }
+    
+    @keyframes titleBounce {
+      0%, 100% { transform: translateY(0) rotate(-1deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+    
+    .subtitle {
+      font-family: 'Fredoka', sans-serif;
+      font-size: clamp(14px, 3vw, 20px);
+      color: #2E7D32;
+      text-align: center;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+    
+    .golf-preview {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 40px;
+      align-items: center;
+    }
+    
+    .preview-ball {
+      width: 50px;
+      height: 50px;
+      background: radial-gradient(circle at 30% 30%, #fff 0%, #f0f0f0 100%);
+      border-radius: 50%;
+      box-shadow: 
+        inset -8px -8px 15px rgba(0,0,0,0.1),
+        4px 4px 10px rgba(0,0,0,0.2);
+      animation: ballBounce 1s ease-in-out infinite;
+    }
+    
+    @keyframes ballBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    
+    .preview-flag {
+      width: 60px;
+      height: 80px;
+      position: relative;
+    }
+    
+    .flag-pole {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 4px;
+      height: 70px;
+      background: linear-gradient(180deg, #8B4513 0%, #654321 100%);
+      transform: translateX(-50%);
+    }
+    
+    .flag-cloth {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 35px;
+      height: 25px;
+      background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);
+      clip-path: polygon(0 0, 100% 50%, 0 100%);
+      animation: flagWave 1.5s ease-in-out infinite;
+      transform-origin: left center;
+    }
+    
+    @keyframes flagWave {
+      0%, 100% { transform: scaleX(1); }
+      50% { transform: scaleX(0.9); }
+    }
+    
+    .start-btn {
+      padding: 18px 50px;
+      font-family: 'Lilita One', cursive;
+      font-size: clamp(22px, 5vw, 30px);
+      color: #fff;
+      background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%);
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 
+        0 6px 0 #1B5E20,
+        0 10px 20px rgba(0,0,0,0.3);
+      transition: all 0.15s ease;
+      letter-spacing: 1px;
+    }
+    
+    .start-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 8px 0 #1B5E20,
+        0 14px 25px rgba(0,0,0,0.35);
+    }
+    
+    .start-btn:active {
+      transform: translateY(4px);
+      box-shadow: 
+        0 2px 0 #1B5E20,
+        0 4px 10px rgba(0,0,0,0.2);
+    }
+    
+    /* Level Select */
+    .level-select {
+      margin-top: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      max-width: 320px;
+    }
+    
+    .level-btn {
+      width: 50px;
+      height: 50px;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(180deg, #42A5F5 0%, #1976D2 100%);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #0D47A1;
+      transition: all 0.1s ease;
+    }
+    
+    .level-btn:hover {
+      transform: translateY(-2px);
+    }
+    
+    .level-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #0D47A1;
+    }
+    
+    .level-btn.locked {
+      background: linear-gradient(180deg, #9E9E9E 0%, #757575 100%);
+      box-shadow: 0 4px 0 #424242;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    
+    .level-btn.completed {
+      background: linear-gradient(180deg, #66BB6A 0%, #43A047 100%);
+      box-shadow: 0 4px 0 #2E7D32;
+    }
+    
+    /* HUD */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 45px 20px 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    @media (pointer: coarse) {
+      #hud {
+        padding-top: 120px;
+      }
+    }
+    
+    .hud-left, .hud-right {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .hud-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .hud-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+      text-transform: uppercase;
+      font-weight: 600;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+    
+    .hud-value {
+      font-family: 'Lilita One', cursive;
+      font-size: clamp(20px, 5vw, 28px);
+      color: #fff;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+    }
+    
+    .stroke-display {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    
+    .stroke-current {
+      font-family: 'Lilita One', cursive;
+      font-size: clamp(28px, 7vw, 40px);
+      color: #fff;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+    }
+    
+    .stroke-par {
+      font-size: clamp(14px, 3vw, 18px);
+      color: rgba(255,255,255,0.7);
+      font-weight: 600;
+    }
+    
+    /* Ball Counter */
+    .ball-counter {
+      display: flex;
+      gap: 6px;
+    }
+    
+    .ball-pip {
+      width: 16px;
+      height: 16px;
+      background: radial-gradient(circle at 30% 30%, #fff 0%, #e0e0e0 100%);
+      border-radius: 50%;
+      box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+      transition: opacity 0.3s ease;
+    }
+    
+    .ball-pip.used {
+      opacity: 0.3;
+    }
+    
+    /* Power Meter */
+    #power-meter {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 160px;
+      background: rgba(0,0,0,0.3);
+      border: 3px solid rgba(255,255,255,0.5);
+      border-radius: 12px;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    
+    #power-meter.visible {
+      opacity: 1;
+    }
+    
+    .power-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(0deg, #4CAF50 0%, #FFEB3B 50%, #FF5722 100%);
+      transition: height 0.05s ease;
+      border-radius: 9px;
+    }
+    
+    /* Aim Info */
+    #aim-info {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Fredoka', sans-serif;
+      font-size: clamp(14px, 3vw, 18px);
+      color: rgba(255,255,255,0.9);
+      text-align: center;
+      pointer-events: none;
+      z-index: 10;
+      background: rgba(0,0,0,0.3);
+      padding: 8px 16px;
+      border-radius: 20px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+    
+    /* Level Complete Screen */
+    #level-complete-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 100, 0, 0.9);
+      z-index: 100;
+      pointer-events: auto;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+    
+    #level-complete-screen.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .complete-title {
+      font-family: 'Lilita One', cursive;
+      font-size: clamp(36px, 10vw, 64px);
+      color: #FFEB3B;
+      text-shadow: 4px 4px 0 #1B5E20;
+      margin-bottom: 20px;
+      animation: celebrateBounce 0.5s ease-out;
+    }
+    
+    @keyframes celebrateBounce {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .score-summary {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+    
+    .score-row {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    
+    .score-item {
+      text-align: center;
+    }
+    
+    .score-label {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    
+    .score-value {
+      font-family: 'Lilita One', cursive;
+      font-size: 36px;
+      color: #fff;
+    }
+    
+    .score-result {
+      font-family: 'Lilita One', cursive;
+      font-size: clamp(20px, 5vw, 28px);
+      padding: 8px 20px;
+      border-radius: 20px;
+      margin-top: 10px;
+    }
+    
+    .score-result.under {
+      background: #4CAF50;
+      color: #fff;
+    }
+    
+    .score-result.even {
+      background: #2196F3;
+      color: #fff;
+    }
+    
+    .score-result.over {
+      background: #FF9800;
+      color: #fff;
+    }
+    
+    .next-btn, .retry-btn, .menu-btn {
+      padding: 14px 40px;
+      font-family: 'Lilita One', cursive;
+      font-size: clamp(18px, 4vw, 24px);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      letter-spacing: 1px;
+      margin: 8px;
+    }
+    
+    .next-btn {
+      background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%);
+      box-shadow: 0 5px 0 #1B5E20;
+    }
+    
+    .retry-btn {
+      background: linear-gradient(180deg, #FF9800 0%, #F57C00 100%);
+      box-shadow: 0 5px 0 #E65100;
+    }
+    
+    .menu-btn {
+      background: linear-gradient(180deg, #9E9E9E 0%, #757575 100%);
+      box-shadow: 0 5px 0 #424242;
+    }
+    
+    .next-btn:active, .retry-btn:active, .menu-btn:active {
+      transform: translateY(3px);
+    }
+    
+    /* Game Over Screen */
+    #game-over-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(139, 69, 19, 0.95);
+      z-index: 100;
+      pointer-events: auto;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+    
+    #game-over-screen.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .game-over-title {
+      font-family: 'Lilita One', cursive;
+      font-size: clamp(32px, 8vw, 56px);
+      color: #FFEB3B;
+      text-shadow: 4px 4px 0 #5D4037;
+      margin-bottom: 20px;
+    }
+    
+    .total-score {
+      font-family: 'Lilita One', cursive;
+      font-size: clamp(48px, 12vw, 72px);
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    
+    .total-label {
+      font-size: 18px;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 40px;
+    }
+    
+    /* Settings Button */
+    #settings-btn {
+      position: absolute;
+      top: 45px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.4);
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      transition: background 0.2s ease;
+    }
+    
+    @media (pointer: coarse) {
+      #settings-btn {
+        top: 120px;
+      }
+    }
+    
+    #settings-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    
+    #settings-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: #fff;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    /* Settings Panel */
+    #settings-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%);
+      border: 4px solid #1B5E20;
+      border-radius: 24px;
+      padding: 30px;
+      z-index: 200;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      min-width: 280px;
+    }
+    
+    #settings-panel.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    
+    .settings-title {
+      font-family: 'Lilita One', cursive;
+      font-size: 28px;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 25px;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+    }
+    
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    
+    .setting-label {
+      font-size: 16px;
+      color: #fff;
+      font-weight: 600;
+    }
+    
+    .toggle-btn {
+      width: 56px;
+      height: 30px;
+      background: rgba(0,0,0,0.3);
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.2s ease;
+    }
+    
+    .toggle-btn.active {
+      background: #FFEB3B;
+    }
+    
+    .toggle-btn::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 24px;
+      height: 24px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .toggle-btn.active::after {
+      transform: translateX(26px);
+    }
+    
+    .close-settings-btn {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      font-family: 'Lilita One', cursive;
+      font-size: 20px;
+      color: #388E3C;
+      background: #fff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+      transition: transform 0.1s ease;
+    }
+    
+    .close-settings-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+    }
+    
+    /* Settings Overlay */
+    #settings-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 150;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+    
+    #settings-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    /* Wind Indicator */
+    #wind-indicator {
+      position: absolute;
+      top: 45px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,0,0,0.3);
+      padding: 6px 14px;
+      border-radius: 20px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    @media (pointer: coarse) {
+      #wind-indicator {
+        top: 120px;
+      }
+    }
+    
+    .wind-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    
+    .wind-arrow {
+      font-size: 18px;
+      color: #fff;
+      transition: transform 0.3s ease;
+    }
+    
+    .wind-value {
+      font-weight: 700;
+      color: #fff;
+      font-size: 14px;
+    }
+    
+    /* Skip/Ball Buttons */
+    .action-buttons {
+      position: absolute;
+      bottom: 30px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+      z-index: 20;
+    }
+    
+    @media (pointer: coarse) {
+      .action-buttons {
+        bottom: 120px;
+      }
+    }
+    
+    .action-btn {
+      padding: 10px 20px;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      background: rgba(0,0,0,0.4);
+      border: 2px solid rgba(255,255,255,0.4);
+      border-radius: 25px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    
+    .action-btn:hover {
+      background: rgba(0,0,0,0.6);
+    }
+    
+    .action-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <!-- Start Screen -->
+    <div id="start-screen">
+      <div class="title-container">
+        <h1 class="game-title">SLINGSHOT GOLF</h1>
+        <p class="subtitle">Drag, Aim, Swing!</p>
+      </div>
+      <div class="golf-preview">
+        <div class="preview-ball"></div>
+        <div class="preview-flag">
+          <div class="flag-pole"></div>
+          <div class="flag-cloth"></div>
+        </div>
+      </div>
+      <button class="start-btn" id="start-btn">PLAY</button>
+      <div class="level-select" id="level-select"></div>
+    </div>
+    
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div class="hud-left">
+        <span class="hud-label">Level</span>
+        <span class="hud-value" id="level-display">1</span>
+      </div>
+      <div class="hud-center">
+        <span class="hud-label">Strokes</span>
+        <div class="stroke-display">
+          <span class="stroke-current" id="stroke-display">0</span>
+          <span class="stroke-par">/ PAR <span id="par-display">3</span></span>
+        </div>
+      </div>
+      <div class="hud-right">
+        <span class="hud-label">Balls</span>
+        <div class="ball-counter" id="ball-counter"></div>
+      </div>
+    </div>
+    
+    <!-- Wind Indicator -->
+    <div id="wind-indicator" class="hidden">
+      <span class="wind-label">Wind</span>
+      <span class="wind-arrow" id="wind-arrow">→</span>
+      <span class="wind-value" id="wind-value">0</span>
+    </div>
+    
+    <!-- Power Meter -->
+    <div id="power-meter">
+      <div class="power-fill" id="power-fill"></div>
+    </div>
+    
+    <!-- Aim Info -->
+    <div id="aim-info" class="hidden"></div>
+    
+    <!-- Action Buttons -->
+    <div class="action-buttons hidden" id="action-buttons">
+      <button class="action-btn" id="new-ball-btn">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2"/></svg>
+        BALL
+      </button>
+      <button class="action-btn" id="skip-btn">
+        <svg viewBox="0 0 24 24"><path d="M5 4l10 8-10 8V4zm11 0h3v16h-3V4z"/></svg>
+        SKIP
+      </button>
+    </div>
+    
+    <!-- Settings Button -->
+    <button id="settings-btn" class="hidden">
+      <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+    </button>
+    
+    <!-- Settings Overlay -->
+    <div id="settings-overlay"></div>
+    
+    <!-- Settings Panel -->
+    <div id="settings-panel">
+      <h2 class="settings-title">SETTINGS</h2>
+      <div class="setting-row">
+        <span class="setting-label">Music</span>
+        <button class="toggle-btn active" id="toggle-music"></button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Sound FX</span>
+        <button class="toggle-btn active" id="toggle-fx"></button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Haptics</span>
+        <button class="toggle-btn active" id="toggle-haptics"></button>
+      </div>
+      <button class="close-settings-btn" id="close-settings">DONE</button>
+    </div>
+    
+    <!-- Level Complete Screen -->
+    <div id="level-complete-screen">
+      <div class="complete-title" id="complete-title">HOLE IN ONE!</div>
+      <div class="score-summary">
+        <div class="score-row">
+          <div class="score-item">
+            <div class="score-label">Strokes</div>
+            <div class="score-value" id="complete-strokes">3</div>
+          </div>
+          <div class="score-item">
+            <div class="score-label">Par</div>
+            <div class="score-value" id="complete-par">3</div>
+          </div>
+        </div>
+        <div class="score-result" id="complete-result">PAR</div>
+      </div>
+      <div>
+        <button class="next-btn" id="next-btn">NEXT LEVEL</button>
+        <button class="retry-btn" id="retry-btn">RETRY</button>
+      </div>
+    </div>
+    
+    <!-- Game Over Screen -->
+    <div id="game-over-screen">
+      <div class="game-over-title">GAME COMPLETE!</div>
+      <div class="total-score" id="total-score">+5</div>
+      <div class="total-label">Total Score (vs Par)</div>
+      <div>
+        <button class="retry-btn" id="restart-btn">PLAY AGAIN</button>
+        <button class="menu-btn" id="menu-btn">MENU</button>
+      </div>
+    </div>
+  </div>
+  
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

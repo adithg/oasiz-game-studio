@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, minimal-ui">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Hoops Jump</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --console-color: #d4752c;
+            --console-color-dark: #b85a1a;
+            --console-color-light: #e8934a;
+            --console-btn-color: #fff5e6;
+            --console-btn-dark: #f0d4b8;
+            --screen-border: #2a2a2a;
+            --screen-bg: #f5e6d3;
+            --accent-color: #ff6b35;
+            --pixel-black: #1a1a1a;
+        }
+
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            font-family: 'Press Start 2P', monospace;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.5s ease;
+        }
+
+        @media (pointer: coarse) {
+            html, body {
+                background: var(--console-color);
+            }
+        }
+
+        /* Checkered background pattern on the console */
+        #game-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(45deg, var(--console-color-dark) 25%, transparent 25%),
+                linear-gradient(-45deg, var(--console-color-dark) 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, var(--console-color-dark) 75%),
+                linear-gradient(-45deg, transparent 75%, var(--console-color-dark) 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            pointer-events: none;
+            z-index: 0;
+            border-radius: 24px;
+            transition: background-image 0.5s ease;
+        }
+
+        @media (pointer: coarse) {
+            #game-container::before {
+                border-radius: 0;
+            }
+        }
+
+        /* Desktop background pattern */
+        @media (pointer: fine) {
+            body::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: 
+                    radial-gradient(circle at 50% 50%, #2a2a4e 0%, #1a1a2e 70%);
+                pointer-events: none;
+                z-index: -1;
+            }
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 520px;
+            max-height: 1100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            z-index: 1;
+            margin: auto;
+            border-radius: 24px;
+            background: var(--console-color);
+            box-shadow: 
+                0 0 0 4px var(--console-color-dark),
+                0 0 0 8px rgba(0,0,0,0.2),
+                0 8px 30px rgba(0,0,0,0.4);
+            transition: background 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        @media (pointer: coarse) {
+            #game-container {
+                max-width: none;
+                max-height: none;
+                border-radius: 0;
+                box-shadow: none;
+            }
+        }
+
+        /* Game screen area */
+        #screen-container {
+            position: relative;
+            width: 100%;
+            max-width: 470px;
+            flex: 1;
+            max-height: 72%;
+            background: #0a0a0a;
+            border: 8px solid var(--screen-border);
+            border-radius: 12px;
+            box-shadow: 
+                inset 0 0 0 3px #1a1a1a,
+                inset 0 0 20px rgba(0,0,0,0.8),
+                0 6px 0 0 #3a3a3a,
+                0 10px 0 0 #2a2a2a,
+                0 14px 20px rgba(0,0,0,0.3);
+            overflow: hidden;
+            margin-top: 100px;
+            z-index: 2;
+            transition: border-color 0.5s ease;
+        }
+
+        @media (pointer: coarse) {
+            #screen-container {
+                margin-top: 100px;
+                max-height: 60%;
+                max-width: 440px;
+            }
+        }
+
+        /* Screen bezel shine effect */
+        #screen-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* HUD below screen */
+        #hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 420px;
+            padding: 12px 10px;
+            margin-top: 4px;
+            z-index: 2;
+        }
+
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #000000;
+            padding: 12px 18px;
+            border-radius: 12px;
+            border: 4px solid #ffffff;
+            box-shadow: 
+                0 6px 0 rgba(0,0,0,0.4),
+                inset 0 0 10px rgba(255,255,255,0.1);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.2s;
+            min-width: 110px;
+        }
+
+        .hud-label {
+            font-size: 10px;
+            color: #ffffff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: bold;
+            opacity: 0.9;
+        }
+
+        .hud-value {
+            font-size: 24px;
+            color: #ffffff;
+            text-shadow: 
+                0 0 8px rgba(255,255,255,0.3);
+            letter-spacing: 3px;
+        }
+
+        .timer-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .timer-bonus {
+            position: absolute;
+            top: -25px;
+            right: -10px;
+            font-size: 24px;
+            color: #00ffaa;
+            font-weight: bold;
+            opacity: 0;
+            pointer-events: none;
+            text-shadow: 0 0 10px rgba(0, 255, 170, 0.8), 2px 2px 0 rgba(0,0,0,0.5);
+            z-index: 100;
+        }
+
+        .timer-bonus.animate {
+            animation: timer-pop-fade 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes timer-pop-fade {
+            0% { opacity: 0; transform: translateY(10px) scale(0.5); }
+            30% { opacity: 1; transform: translateY(-15px) scale(1.4); }
+            100% { opacity: 0; transform: translateY(-45px) scale(1); }
+        }
+
+        .hud-item.pop {
+            transform: scale(1.1);
+            border-color: #ffff00;
+            box-shadow: 
+                0 0 10px rgba(255,255,0,0.3),
+                0 6px 0 rgba(0,0,0,0.4);
+        }
+
+        .hud-item.warning {
+            border-color: #ff4040;
+            animation: pulse-warning 0.5s infinite;
+        }
+
+        @keyframes pulse-warning {
+            0%, 100% { border-color: #ff4040; }
+            50% { border-color: #ff8080; }
+        }
+
+        @media (pointer: coarse) {
+            #hud {
+                max-width: 400px;
+            }
+            .hud-item {
+                min-width: 130px;
+                padding: 14px 22px;
+            }
+            .hud-value {
+                font-size: 28px;
+            }
+            .hud-label {
+                font-size: 11px;
+            }
+        }
+
+
+        /* Combo display */
+        #combo-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2rem;
+            color: #ffff00;
+            text-shadow: 
+                2px 2px 0 #000,
+                -2px -2px 0 #000,
+                2px -2px 0 #000,
+                -2px 2px 0 #000;
+            z-index: 5;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        #combo-display.active {
+            opacity: 1;
+            animation: combo-bounce 0.5s ease-out;
+        }
+
+        @keyframes combo-bounce {
+            0% { transform: translate(-50%, -50%) scale(0.5); }
+            50% { transform: translate(-50%, -50%) scale(1.3); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* Control buttons area */
+        #controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 440px;
+            padding: 12px 8px;
+            margin-top: -40px;
+            z-index: 2;
+        }
+
+        @media (pointer: coarse) {
+            #controls {
+                max-width: 420px;
+                padding: 16px 8px;
+                margin-top: -10px;
+            }
+        }
+
+        /* Boost button - large and prominent */
+        #boost-btn {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(180deg, #ffffff 0%, var(--console-btn-color) 40%, var(--console-btn-dark) 100%);
+            border: 6px solid var(--pixel-black);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 
+                0 8px 0 0 #404040,
+                0 12px 0 0 #2a2a2a,
+                0 16px 15px rgba(0,0,0,0.3),
+                inset 0 4px 0 rgba(255,255,255,0.8),
+                inset 0 -6px 0 rgba(0,0,0,0.1);
+            transition: transform 0.05s, box-shadow 0.05s, background 0.5s ease;
+            touch-action: manipulation;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        #boost-btn:active, #boost-btn.pressed {
+            transform: translateY(8px);
+            box-shadow: 
+                0 0 0 0 #404040,
+                0 4px 0 0 #2a2a2a,
+                0 6px 6px rgba(0,0,0,0.15),
+                inset 0 5px 10px rgba(0,0,0,0.25);
+        }
+
+        #boost-btn .btn-label {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.6rem;
+            color: var(--pixel-black);
+            text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+        }
+
+        #boost-btn .btn-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #ff8c42 0%, #d4752c 50%, #a85a1a 100%);
+            border: 4px solid var(--pixel-black);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        /* Basketball lines on icon */
+        #boost-btn .btn-icon::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 2px;
+            right: 2px;
+            height: 3px;
+            background: var(--pixel-black);
+            transform: translateY(-50%);
+        }
+
+        #boost-btn .btn-icon::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 2px;
+            bottom: 2px;
+            width: 3px;
+            background: var(--pixel-black);
+            transform: translateX(-50%);
+        }
+
+        @media (pointer: coarse) {
+            #boost-btn {
+                width: 140px;
+                height: 140px;
+                border-width: 7px;
+            }
+            #boost-btn .btn-icon {
+                width: 60px;
+                height: 60px;
+            }
+            #boost-btn .btn-label {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* Pause button */
+        #pauseBtn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(180deg, #ffffff 0%, var(--screen-bg) 100%);
+            border: 4px solid var(--pixel-black);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 
+                0 4px 0 0 #404040,
+                0 6px 0 0 #2a2a2a;
+            z-index: 20;
+            transition: transform 0.05s, box-shadow 0.05s;
+        }
+
+        #pauseBtn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 0 #404040, 0 2px 0 0 #2a2a2a;
+        }
+
+        #pauseBtn svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--pixel-black);
+        }
+
+        @media (pointer: coarse) {
+            #pauseBtn {
+                top: 115px;
+                width: 42px;
+                height: 42px;
+            }
+            #pauseBtn svg {
+                width: 18px;
+                height: 18px;
+            }
+        }
+
+        /* Settings button */
+        #settingsBtn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(180deg, #ffffff 0%, var(--screen-bg) 100%);
+            border: 4px solid var(--pixel-black);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 
+                0 4px 0 0 #404040,
+                0 6px 0 0 #2a2a2a;
+            z-index: 20;
+            transition: transform 0.05s, box-shadow 0.05s;
+        }
+
+        #settingsBtn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 0 #404040, 0 2px 0 0 #2a2a2a;
+        }
+
+        #settingsBtn svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--pixel-black);
+        }
+
+        @media (pointer: coarse) {
+            #settingsBtn {
+                top: 115px;
+                width: 42px;
+                height: 42px;
+            }
+            #settingsBtn svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        /* Overlays */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            pointer-events: none;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .overlay:not(.hidden) {
+            pointer-events: auto;
+        }
+
+        .overlay-content {
+            text-align: center;
+            padding: 35px 30px;
+            background: linear-gradient(180deg, #ffffff 0%, var(--console-btn-color) 100%);
+            border: 8px solid var(--pixel-black);
+            border-radius: 16px;
+            box-shadow: 
+                0 10px 0 0 #404040,
+                0 15px 0 0 #2a2a2a,
+                0 20px 30px rgba(0,0,0,0.4);
+            max-width: 92%;
+            width: 340px;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: background 0.5s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Start Screen - transparent overlay to show live preview */
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            overflow: hidden;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 5px;
+        }
+
+        #startScreen.hidden {
+            display: none !important;
+        }
+
+        /* Gradient overlay at top and bottom for readability */
+        .start-overlay-gradient {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(180deg, 
+                    rgba(0,0,0,0.55) 0%, 
+                    rgba(0,0,0,0.25) 15%,
+                    rgba(0,0,0,0.05) 35%,
+                    rgba(0,0,0,0) 50%,
+                    rgba(0,0,0,0.05) 65%,
+                    rgba(0,0,0,0.35) 85%,
+                    rgba(0,0,0,0.65) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Title area at the top */
+        .start-title-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 30px 20px 20px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        @media (pointer: coarse) {
+            .start-title-area {
+                padding-top: 20px;
+            }
+        }
+
+        .start-logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .logo-main {
+            font-size: 2.2rem;
+            color: #ffffff;
+            text-shadow: 
+                4px 4px 0 var(--console-color-dark),
+                6px 6px 0 rgba(0,0,0,0.3),
+                0 0 30px rgba(255,107,53,0.6);
+            letter-spacing: 2px;
+            line-height: 1;
+            animation: logo-bounce 2.5s ease-in-out infinite;
+        }
+
+        @keyframes logo-bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-8px) scale(1.02); }
+        }
+
+        .logo-sub {
+            font-size: 0.55rem;
+            color: #ffd700;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            animation: glow-pulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow-pulse {
+            from { text-shadow: 2px 2px 0 rgba(0,0,0,0.5), 0 0 10px rgba(255,215,0,0.3); }
+            to { text-shadow: 2px 2px 0 rgba(0,0,0,0.5), 0 0 20px rgba(255,215,0,0.6); }
+        }
+
+        /* Animated basketball icons */
+        .start-ball-icon {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff8c42 0%, #d4752c 50%, #a85a1a 100%);
+            border: 4px solid rgba(0,0,0,0.8);
+            box-shadow: 
+                0 4px 10px rgba(0,0,0,0.4),
+                inset 0 0 20px rgba(255,255,255,0.2);
+            z-index: 5;
+        }
+
+        .start-ball-icon::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 3px;
+            right: 3px;
+            height: 3px;
+            background: rgba(0,0,0,0.6);
+            transform: translateY(-50%);
+        }
+
+        .start-ball-icon::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 3px;
+            bottom: 3px;
+            width: 3px;
+            background: rgba(0,0,0,0.6);
+            transform: translateX(-50%);
+        }
+
+        .ball-left {
+            top: 80px;
+            left: 20px;
+            animation: ball-float-left 3s ease-in-out infinite;
+        }
+
+        .ball-right {
+            top: 60px;
+            right: 20px;
+            animation: ball-float-right 3.5s ease-in-out infinite 0.5s;
+        }
+
+        @keyframes ball-float-left {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        @keyframes ball-float-right {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-25px) rotate(-180deg); }
+        }
+
+        @media (pointer: coarse) {
+            .ball-left { top: 60px; left: 15px; width: 40px; height: 40px; }
+            .ball-right { top: 45px; right: 15px; width: 40px; height: 40px; }
+        }
+
+        /* Court selector at the center */
+        .court-selector {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .court-label {
+            font-size: 0.5rem;
+            color: #ffffff;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+            margin-bottom: 12px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .court-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .court-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.7);
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            min-width: 80px;
+        }
+
+        .court-btn:active {
+            transform: scale(0.95);
+        }
+
+        .court-btn.active {
+            border-color: var(--accent-color);
+            background: rgba(212,117,44,0.4);
+            box-shadow: 0 0 20px rgba(255,107,53,0.5);
+        }
+
+        .court-btn .court-icon {
+            font-size: 1.6rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .court-btn .court-name {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.4rem;
+            color: rgba(255,255,255,0.7);
+            letter-spacing: 1px;
+        }
+
+        .court-btn.active .court-name {
+            color: #ffffff;
+        }
+
+        /* Start button area - on the Game Boy chassis */
+        .start-action {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            max-width: 320px;
+            padding: 0 20px;
+        }
+
+        @media (pointer: coarse) {
+            .start-action {
+                bottom: 140px;
+            }
+        }
+
+        .start-action.hidden {
+            display: none !important;
+        }
+
+        .start-instructions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 16px;
+            margin-bottom: 5px;
+        }
+
+        .start-tip {
+            font-size: 0.4rem;
+            color: rgba(255,255,255,0.9);
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tip-icon {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            background: var(--accent-color);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.35rem;
+        }
+
+        #startButton {
+            width: 100%;
+            padding: 20px 30px;
+            font-size: 1rem;
+            letter-spacing: 3px;
+            animation: start-pulse 1.5s ease-in-out infinite;
+            box-shadow: 
+                0 6px 0 0 #8a4a1a,
+                0 10px 0 0 #6a3a0a,
+                0 0 40px rgba(255,107,53,0.4),
+                inset 0 2px 0 rgba(255,255,255,0.3);
+        }
+
+        @keyframes start-pulse {
+            0%, 100% { 
+                transform: scale(1); 
+                box-shadow: 0 6px 0 0 #8a4a1a, 0 10px 0 0 #6a3a0a, 0 0 40px rgba(255,107,53,0.4), inset 0 2px 0 rgba(255,255,255,0.3);
+            }
+            50% { 
+                transform: scale(1.03); 
+                box-shadow: 0 6px 0 0 #8a4a1a, 0 10px 0 0 #6a3a0a, 0 0 60px rgba(255,107,53,0.6), inset 0 2px 0 rgba(255,255,255,0.3);
+            }
+        }
+
+        .start-hint {
+            font-size: 0.35rem;
+            color: rgba(255,255,255,0.6);
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* Scanlines overlay for retro effect */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0,0,0,0.03) 0px,
+                rgba(0,0,0,0.03) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .btn {
+            background: linear-gradient(180deg, var(--console-color-light) 0%, var(--console-color) 50%, var(--console-color-dark) 100%);
+            color: #ffffff;
+            border: 5px solid var(--pixel-black);
+            padding: 14px 24px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.65rem;
+            cursor: pointer;
+            border-radius: 6px;
+            box-shadow: 
+                0 5px 0 0 #8a4a1a,
+                0 7px 0 0 #6a3a0a,
+                inset 0 2px 0 rgba(255,255,255,0.2);
+            transition: transform 0.05s, box-shadow 0.05s, background 0.5s ease;
+            margin: 5px;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(5px);
+            box-shadow: 
+                0 0 0 0 #8a4a1a,
+                0 2px 0 0 #6a3a0a,
+                inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(180deg, #f0e8e0 0%, var(--console-btn-dark) 50%, #c8c0b8 100%);
+            color: var(--pixel-black);
+            box-shadow: 
+                0 5px 0 0 #a8a098,
+                0 7px 0 0 #888078,
+                inset 0 2px 0 rgba(255,255,255,0.4);
+            text-shadow: none;
+        }
+
+        .btn-secondary:active {
+            box-shadow: 
+                0 0 0 0 #a8a098,
+                0 2px 0 0 #888078,
+                inset 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        /* Score display */
+        .final-score {
+            font-size: 1.5rem;
+            color: var(--pixel-black);
+            margin: 8px 0 20px;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+            opacity: 0.8;
+        }
+
+        .score-label {
+            font-size: 0.45rem;
+            color: var(--pixel-black);
+            opacity: 0.5;
+            margin-bottom: 4px;
+        }
+
+        .baskets-made {
+            font-size: 1.8rem;
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(212, 117, 44, 0.3), 3px 3px 0 rgba(0,0,0,0.1);
+            font-weight: bold;
+            display: block;
+            border-top: 4px solid var(--console-color-dark);
+            border-bottom: 4px solid var(--console-color-dark);
+            padding: 15px 0;
+            animation: pulse-score 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-score {
+            0%, 100% { transform: scale(1); text-shadow: 0 0 10px rgba(212, 117, 44, 0.3), 3px 3px 0 rgba(0,0,0,0.1); }
+            50% { transform: scale(1.05); text-shadow: 0 0 20px rgba(212, 117, 44, 0.6), 3px 3px 0 rgba(0,0,0,0.1); }
+        }
+
+        .rank-container {
+            margin-bottom: 20px;
+        }
+
+        .rank-value {
+            font-size: 0.8rem;
+            color: #ffd700;
+            background: #000;
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 2px solid #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+            margin-top: 5px;
+            letter-spacing: 2px;
+        }
+
+        .baskets-made-label {
+            font-size: 0.5rem;
+            color: var(--pixel-black);
+            opacity: 0.8;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        /* Settings Modal */
+        .settings-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(180deg, #ffffff 0%, var(--console-btn-color) 100%);
+            border: 8px solid var(--pixel-black);
+            border-radius: 12px;
+            padding: 22px 20px;
+            z-index: 150;
+            box-shadow: 
+                0 8px 0 0 #404040,
+                0 12px 0 0 #2a2a2a,
+                0 16px 30px rgba(0,0,0,0.4);
+            min-width: 240px;
+        }
+
+        .settings-modal.hidden {
+            display: none;
+        }
+
+        .settings-title {
+            font-size: 0.7rem;
+            color: var(--pixel-black);
+            margin-bottom: 18px;
+            text-align: center;
+        }
+
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 3px solid rgba(0,0,0,0.1);
+        }
+
+        .settings-row:last-of-type {
+            border-bottom: none;
+        }
+
+        .settings-label {
+            font-size: 0.45rem;
+            color: var(--pixel-black);
+        }
+
+        .toggle {
+            width: 48px;
+            height: 26px;
+            background: #b0a8a0;
+            border: 4px solid var(--pixel-black);
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            transition: background 0.2s ease;
+        }
+
+        .toggle.active {
+            background: var(--console-color);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: linear-gradient(180deg, #ffffff 0%, #e0e0e0 100%);
+            border: 3px solid var(--pixel-black);
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+        }
+
+        .toggle.active::after {
+            transform: translateX(22px);
+        }
+
+        .settings-divider {
+            height: 3px;
+            background: rgba(0,0,0,0.1);
+            margin: 12px 0;
+        }
+
+        .settings-subtitle {
+            font-size: 0.5rem;
+            color: var(--pixel-black);
+            margin-bottom: 10px;
+            text-align: center;
+            opacity: 0.7;
+        }
+
+        .map-selector {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .map-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 12px;
+            background: linear-gradient(180deg, #e8e0d8 0%, #d0c8c0 100%);
+            border: 4px solid var(--pixel-black);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 3px 0 0 #888078;
+        }
+
+        .map-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 0 0 0 #888078;
+        }
+
+        .map-btn.active {
+            background: linear-gradient(180deg, var(--console-color-light) 0%, var(--console-color) 100%);
+            box-shadow: 0 3px 0 0 #8a4a1a;
+        }
+
+        .map-btn .map-icon {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+
+        .map-btn .map-name {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.35rem;
+            color: var(--pixel-black);
+        }
+
+        .map-btn.active .map-name {
+            color: #ffffff;
+        }
+
+        /* Decorative screws */
+        .screw {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: linear-gradient(135deg, #909090 0%, #707070 50%, #505050 100%);
+            border-radius: 50%;
+            border: 2px solid #404040;
+            z-index: 3;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+
+        .screw::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            width: 8px;
+            height: 2px;
+            background: #404040;
+        }
+
+        .screw-tl { top: 10px; left: 10px; }
+        .screw-tr { top: 10px; right: 10px; }
+        .screw-bl { bottom: 10px; left: 10px; }
+        .screw-br { bottom: 10px; right: 10px; }
+
+        @media (pointer: coarse) {
+            .screw-tl { top: 80px; }
+            .screw-tr { top: 80px; }
+        }
+
+        /* Hide controls on desktop */
+        @media (pointer: fine) {
+            #controls {
+                opacity: 0.4;
+                transition: opacity 0.3s ease;
+            }
+            #controls:hover {
+                opacity: 1;
+            }
+        }
+
+        /* Mobile adjustments */
+        @media (max-height: 680px) {
+            #screen-container {
+                max-height: 42%;
+            }
+            #boost-btn {
+                width: 100px;
+                height: 100px;
+            }
+            #boost-btn .btn-icon {
+                width: 45px;
+                height: 45px;
+            }
+            .overlay-content {
+                padding: 20px 18px;
+            }
+            .game-title {
+                font-size: 1.2rem;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Decorative screws -->
+        <div class="screw screw-tl"></div>
+        <div class="screw screw-tr"></div>
+        <div class="screw screw-bl"></div>
+        <div class="screw screw-br"></div>
+
+        <!-- Pause Button -->
+        <button id="pauseBtn" class="hidden">
+            <svg viewBox="0 0 24 24">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
+        </button>
+
+        <!-- Settings Button -->
+        <button id="settingsBtn" class="hidden">
+            <svg viewBox="0 0 24 24">
+                <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+            </svg>
+        </button>
+
+        <!-- Game Screen -->
+        <div id="screen-container">
+            <canvas id="gameCanvas"></canvas>
+            <div id="combo-display"></div>
+            
+            <!-- Start Screen - inside screen container to overlay canvas -->
+            <div id="startScreen">
+                <!-- Gradient overlay for readability -->
+                <div class="start-overlay-gradient"></div>
+                
+                <!-- Scanlines for retro effect -->
+                <div class="scanlines"></div>
+                
+                <!-- Floating basketballs -->
+                <div class="start-ball-icon ball-left"></div>
+                <div class="start-ball-icon ball-right"></div>
+                
+                <!-- Title at top -->
+                <div class="start-title-area">
+                    <div class="start-logo">
+                        <h1 class="logo-main">HOOPS JUMP</h1>
+                        <p class="logo-sub">Arcade Basketball</p>
+                    </div>
+                </div>
+                
+                <!-- Court selector -->
+                <div class="court-selector">
+                    <span class="court-label">SELECT COURT</span>
+                    <div class="court-buttons">
+                        <button class="court-btn active" data-map="city">
+                            <span class="court-icon">🏙️</span>
+                            <span class="court-name">CITY</span>
+                        </button>
+                        <button class="court-btn" data-map="mountain">
+                            <span class="court-icon">🏔️</span>
+                            <span class="court-name">MOUNTAIN</span>
+                        </button>
+                        <button class="court-btn" data-map="beach">
+                            <span class="court-icon">🏖️</span>
+                            <span class="court-name">PIER</span>
+                        </button>
+                    </div>
+                </div>
+                
+            </div>
+
+            <!-- Game Over Screen -->
+            <div id="gameOverScreen" class="overlay hidden">
+                <div class="overlay-content">
+                    <h2 class="game-title">GAME OVER</h2>
+                    
+                    <div class="baskets-made-container">
+                        <p class="baskets-made-label">BASKETS</p>
+                        <div class="baskets-made" id="basketsMade">0</div>
+                    </div>
+
+                    <div class="rank-container">
+                        <p class="score-label">RANK</p>
+                        <div class="rank-value" id="rankValue">ROOKIE</div>
+                    </div>
+
+                    <p class="score-label">FINAL SCORE</p>
+                    <div class="final-score" id="finalScore">0</div>
+                    
+                    <button class="btn" id="restartButton">RETRY</button>
+                    <button class="btn btn-secondary" id="menuButton">MENU</button>
+                </div>
+            </div>
+
+            <!-- Pause Screen -->
+            <div id="pauseScreen" class="overlay hidden">
+                <div class="overlay-content">
+                    <h2 class="game-title">PAUSED</h2>
+                    <button class="btn" id="resumeButton">RESUME</button>
+                    <button class="btn btn-secondary" id="pauseRestartBtn">RESTART</button>
+                    <button class="btn btn-secondary" id="pauseMenuBtn">MENU</button>
+                </div>
+            </div>
+
+            <!-- Settings Modal -->
+            <div id="settingsModal" class="settings-modal hidden">
+                <h3 class="settings-title">SETTINGS</h3>
+                <div class="settings-row">
+                    <span class="settings-label">MUSIC</span>
+                    <div class="toggle active" id="musicToggle"></div>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">SOUND FX</span>
+                    <div class="toggle active" id="fxToggle"></div>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">HAPTICS</span>
+                    <div class="toggle active" id="hapticToggle"></div>
+                </div>
+                <div class="settings-divider"></div>
+                <h4 class="settings-subtitle">COURT</h4>
+                <div class="map-selector">
+                    <button class="map-btn active" id="mapCity" data-map="city">
+                        <span class="map-icon">🏙️</span>
+                        <span class="map-name">CITY</span>
+                    </button>
+                    <button class="map-btn" id="mapMountain" data-map="mountain">
+                        <span class="map-icon">🏔️</span>
+                        <span class="map-name">MOUNTAIN</span>
+                    </button>
+                    <button class="map-btn" id="mapBeach" data-map="beach">
+                        <span class="map-icon">🏖️</span>
+                        <span class="map-name">PIER</span>
+                    </button>
+                </div>
+                <button class="btn" id="settingsClose">DONE</button>
+            </div>
+        </div>
+
+        <!-- Start button area - on the Game Boy chassis -->
+        <div class="start-action" id="startAction">
+            <button class="btn" id="startButton">PRESS START</button>
+            <span class="start-hint">TAP ANYWHERE OR PRESS SPACE</span>
+        </div>
+
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+            <div class="hud-item" id="score-badge">
+                <span class="hud-label">SCORE</span>
+                <span class="hud-value" id="scoreDisplay">0</span>
+            </div>
+            <div class="hud-item" id="timer-badge">
+                <span class="hud-label">TIME</span>
+                <div class="timer-container">
+                    <span class="hud-value" id="timerDisplay">60</span>
+                    <div id="timer-bonus-popup" class="timer-bonus">+2</div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Controls -->
+        <div id="controls" class="hidden">
+            <button id="boost-btn">
+                <div class="btn-icon"></div>
+                <span class="btn-label">BOOST</span>
+            </button>
+        </div>
+
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
+

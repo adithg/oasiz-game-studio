@@ -1,0 +1,263 @@
+{
+  "items": [
+    {
+      "id": "hive_cartridge",
+      "name": "Hive Cartridge",
+      "description": "Shots have a chance to spawn seeking bee-bullets",
+      "rarity": "rare",
+      "type": "permanent",
+      "tags": ["summon", "projectile"],
+      "effects": [
+        { "type": "on_shot", "spawnProjectile": "bee_micro", "count": 2, "chance": 0.3 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "chance": 0.1 }
+    },
+    {
+      "id": "tesla_paperclip",
+      "name": "Tesla Paperclip",
+      "description": "Projectiles gain chain lightning effect",
+      "rarity": "rare",
+      "type": "permanent",
+      "tags": ["electric", "projectile"],
+      "effects": [
+        { "type": "stat_add", "stat": "chain", "value": 2 },
+        { "type": "on_hit", "applyStatus": "shock", "stacks": 1, "chance": 0.25 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "chain": 1 }
+    },
+    {
+      "id": "static_wall",
+      "name": "Static Wall",
+      "description": "Every 5 shots creates a short-lived electric wall",
+      "rarity": "epic",
+      "type": "permanent",
+      "tags": ["electric", "area"],
+      "effects": [
+        { "type": "on_shot_count", "count": 5, "createEntity": "electric_wall", "duration": 3.0 }
+      ],
+      "stacking": "diminishing",
+      "stackBonus": { "count": -1 }
+    },
+    {
+      "id": "blink_fuse",
+      "name": "Blink Fuse",
+      "description": "Explosive projectiles teleport to nearest enemy when they miss",
+      "rarity": "epic",
+      "type": "permanent",
+      "tags": ["teleport", "explosive"],
+      "effects": [
+        { "type": "conditional", "ifTag": "explosive", "then": { "type": "on_miss", "teleportToNearest": true, "range": 150 } }
+      ],
+      "stacking": "unique"
+    },
+    {
+      "id": "cursed_ink",
+      "name": "Cursed Ink",
+      "description": "+200% damage, -50% max HP, enemies spawn faster",
+      "rarity": "cursed",
+      "type": "permanent",
+      "tags": ["curse", "damage"],
+      "effects": [
+        { "type": "stat_mult", "stat": "damage", "value": 3.0 },
+        { "type": "stat_mult", "stat": "maxHp", "value": 0.5 },
+        { "type": "stat_mult", "stat": "enemySpawnRate", "value": 1.3 }
+      ],
+      "stacking": "unique"
+    },
+    {
+      "id": "rubber_band",
+      "name": "Rubber Band",
+      "description": "Projectiles bounce off walls",
+      "rarity": "common",
+      "type": "permanent",
+      "tags": ["projectile"],
+      "effects": [
+        { "type": "stat_add", "stat": "bounce", "value": 2 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "bounce": 1 }
+    },
+    {
+      "id": "sharpened_pencil",
+      "name": "Sharpened Pencil",
+      "description": "+20% damage",
+      "rarity": "common",
+      "type": "permanent",
+      "tags": ["damage"],
+      "effects": [
+        { "type": "stat_mult", "stat": "damage", "value": 1.2 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "value": 0.1 }
+    },
+    {
+      "id": "coffee_stain",
+      "name": "Coffee Stain",
+      "description": "+25% fire rate",
+      "rarity": "common",
+      "type": "permanent",
+      "tags": ["fire_rate"],
+      "effects": [
+        { "type": "stat_mult", "stat": "fireRate", "value": 1.25 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "value": 0.1 }
+    },
+    {
+      "id": "roller_skates",
+      "name": "Roller Skates",
+      "description": "+30% movement speed",
+      "rarity": "common",
+      "type": "permanent",
+      "tags": ["movement"],
+      "effects": [
+        { "type": "stat_mult", "stat": "moveSpeed", "value": 1.3 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "value": 0.1 }
+    },
+    {
+      "id": "lucky_eraser",
+      "name": "Lucky Eraser",
+      "description": "+15% crit chance",
+      "rarity": "rare",
+      "type": "permanent",
+      "tags": ["crit"],
+      "effects": [
+        { "type": "stat_add", "stat": "critChance", "value": 0.15 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "critChance": 0.05 }
+    },
+    {
+      "id": "magnet_clip",
+      "name": "Magnet Clip",
+      "description": "+50% pickup radius",
+      "rarity": "common",
+      "type": "permanent",
+      "tags": ["utility"],
+      "effects": [
+        { "type": "stat_mult", "stat": "pickupRadius", "value": 1.5 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "value": 0.25 }
+    },
+    {
+      "id": "flame_doodle",
+      "name": "Flame Doodle",
+      "description": "Projectiles have a chance to inflict burn",
+      "rarity": "rare",
+      "type": "permanent",
+      "tags": ["fire", "status"],
+      "effects": [
+        { "type": "on_hit", "applyStatus": "burn", "stacks": 1, "chance": 0.25 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "chance": 0.1 }
+    },
+    {
+      "id": "paper_armor",
+      "name": "Paper Armor",
+      "description": "+25 max HP and 10% damage reduction",
+      "rarity": "rare",
+      "type": "permanent",
+      "tags": ["defense", "shield"],
+      "effects": [
+        { "type": "stat_add", "stat": "maxHp", "value": 25 },
+        { "type": "stat_add", "stat": "damageReduction", "value": 0.1 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "maxHp": 15, "damageReduction": 0.05 }
+    },
+    {
+      "id": "poison_pen",
+      "name": "Poison Pen",
+      "description": "Projectiles apply poison on hit",
+      "rarity": "rare",
+      "type": "permanent",
+      "tags": ["poison", "status"],
+      "effects": [
+        { "type": "on_hit", "applyStatus": "poison", "stacks": 2, "chance": 0.4 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "stacks": 1 }
+    },
+    {
+      "id": "splash_damage",
+      "name": "Splash Page",
+      "description": "All projectiles gain small AOE",
+      "rarity": "epic",
+      "type": "permanent",
+      "tags": ["aoe", "projectile"],
+      "effects": [
+        { "type": "stat_add", "stat": "aoeRadius", "value": 30 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "aoeRadius": 15 }
+    },
+    {
+      "id": "berserker_ink",
+      "name": "Berserker Ink",
+      "description": "Temporary: +100% damage and fire rate for 3 rounds",
+      "rarity": "epic",
+      "type": "temporary",
+      "duration": 3,
+      "tags": ["damage", "fire_rate"],
+      "effects": [
+        { "type": "stat_mult", "stat": "damage", "value": 2.0 },
+        { "type": "stat_mult", "stat": "fireRate", "value": 2.0 }
+      ]
+    },
+    {
+      "id": "invincible_shield",
+      "name": "Invincible Shield",
+      "description": "Temporary: Immune to damage for 2 rounds",
+      "rarity": "legendary",
+      "type": "temporary",
+      "duration": 2,
+      "tags": ["shield", "defense"],
+      "effects": [
+        { "type": "stat_set", "stat": "damageReduction", "value": 1.0 }
+      ]
+    },
+    {
+      "id": "bullet_storm",
+      "name": "Bullet Storm",
+      "description": "Temporary: Fire 3 projectiles per shot for 3 rounds",
+      "rarity": "epic",
+      "type": "temporary",
+      "duration": 3,
+      "tags": ["projectile", "multishot"],
+      "effects": [
+        { "type": "stat_add", "stat": "projectilesPerShot", "value": 2 }
+      ]
+    },
+    {
+      "id": "speed_boost",
+      "name": "Turbo Wheels",
+      "description": "Temporary: +100% movement speed for 2 rounds",
+      "rarity": "rare",
+      "type": "temporary",
+      "duration": 2,
+      "tags": ["movement"],
+      "effects": [
+        { "type": "stat_mult", "stat": "moveSpeed", "value": 2.0 }
+      ]
+    },
+    {
+      "id": "vampire_quill",
+      "name": "Vampire Quill",
+      "description": "Heal 1 HP for every 10 enemies killed",
+      "rarity": "epic",
+      "type": "permanent",
+      "tags": ["healing", "on_kill"],
+      "effects": [
+        { "type": "on_kill_count", "count": 10, "heal": 1 }
+      ],
+      "stacking": "linear",
+      "stackBonus": { "count": -2 }
+    }
+  ]
+}

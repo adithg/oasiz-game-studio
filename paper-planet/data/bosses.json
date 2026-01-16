@@ -1,0 +1,178 @@
+{
+  "bosses": [
+    {
+      "id": "king_scribble",
+      "name": "King Scribble",
+      "description": "A chaotic mass of angry doodles who rules the first sector",
+      "hp": 500,
+      "contactDamage": 20,
+      "spawnRound": 5,
+      "phases": [
+        {
+          "id": "phase_1",
+          "name": "Scribble Storm",
+          "hpThreshold": 1.0,
+          "description": "King Scribble attacks with erratic scribble projectiles",
+          "behaviors": ["random_movement", "scribble_burst"],
+          "patterns": [
+            {
+              "id": "scribble_burst",
+              "type": "radial_burst",
+              "projectileCount": 8,
+              "projectileSpeed": 200,
+              "projectileDamage": 10,
+              "cooldown": 2.0,
+              "telegraphTime": 0.5
+            }
+          ]
+        },
+        {
+          "id": "phase_2",
+          "name": "Ink Rage",
+          "hpThreshold": 0.6,
+          "description": "King Scribble becomes enraged, spawning minions",
+          "behaviors": ["chase_player", "spawn_minions"],
+          "patterns": [
+            {
+              "id": "scribble_burst",
+              "type": "radial_burst",
+              "projectileCount": 12,
+              "projectileSpeed": 250,
+              "projectileDamage": 12,
+              "cooldown": 1.5,
+              "telegraphTime": 0.4
+            },
+            {
+              "id": "spawn_drifters",
+              "type": "spawn_enemies",
+              "enemyType": "drifter",
+              "count": 3,
+              "cooldown": 5.0
+            }
+          ]
+        },
+        {
+          "id": "phase_3",
+          "name": "Final Scrawl",
+          "hpThreshold": 0.3,
+          "description": "Desperate attacks with laser rings",
+          "behaviors": ["center_arena", "laser_ring"],
+          "patterns": [
+            {
+              "id": "laser_ring",
+              "type": "rotating_laser",
+              "laserCount": 4,
+              "rotationSpeed": 1.0,
+              "damage": 15,
+              "duration": 5.0,
+              "cooldown": 8.0,
+              "telegraphTime": 1.0
+            },
+            {
+              "id": "scribble_spiral",
+              "type": "spiral_burst",
+              "projectileCount": 20,
+              "projectileSpeed": 180,
+              "projectileDamage": 8,
+              "spiralSpeed": 2.0,
+              "cooldown": 3.0
+            }
+          ]
+        }
+      ],
+      "lootTable": [
+        { "itemId": "cursed_ink", "weight": 10 },
+        { "itemId": "splash_damage", "weight": 30 },
+        { "itemId": "vampire_quill", "weight": 30 },
+        { "rarity": "epic", "weight": 30 }
+      ],
+      "visual": {
+        "shape": "boss_scribble",
+        "color": "#2d3436",
+        "size": 80,
+        "outlineWidth": 5,
+        "outlineColor": "#636e72",
+        "image": "https://assets.oasiz.ai/dev/images/paper-planet/boss-king-scribble.png"
+      }
+    },
+    {
+      "id": "paper_dragon",
+      "name": "Paper Dragon",
+      "description": "An origami dragon that breathes fire and swoops across the arena",
+      "hp": 800,
+      "contactDamage": 25,
+      "spawnRound": 10,
+      "phases": [
+        {
+          "id": "phase_1",
+          "name": "Aerial Assault",
+          "hpThreshold": 1.0,
+          "description": "The dragon swoops across the arena",
+          "behaviors": ["swoop_pattern"],
+          "patterns": [
+            {
+              "id": "fire_breath",
+              "type": "cone_attack",
+              "angle": 45,
+              "range": 250,
+              "damage": 15,
+              "duration": 1.5,
+              "cooldown": 4.0,
+              "telegraphTime": 0.8
+            },
+            {
+              "id": "swoop",
+              "type": "dash_attack",
+              "speed": 600,
+              "damage": 20,
+              "cooldown": 3.0,
+              "telegraphTime": 0.6
+            }
+          ]
+        },
+        {
+          "id": "phase_2",
+          "name": "Inferno",
+          "hpThreshold": 0.5,
+          "description": "The dragon lands and creates fire hazards",
+          "behaviors": ["stationary", "fire_hazards"],
+          "patterns": [
+            {
+              "id": "fire_rain",
+              "type": "area_hazard",
+              "hazardType": "fire_pool",
+              "count": 5,
+              "damage": 10,
+              "duration": 4.0,
+              "cooldown": 3.0
+            },
+            {
+              "id": "fire_breath_enhanced",
+              "type": "cone_attack",
+              "angle": 60,
+              "range": 300,
+              "damage": 20,
+              "duration": 2.0,
+              "cooldown": 3.0,
+              "telegraphTime": 0.5
+            }
+          ]
+        }
+      ],
+      "lootTable": [
+        { "itemId": "flame_doodle", "weight": 40 },
+        { "itemId": "blink_fuse", "weight": 20 },
+        { "rarity": "legendary", "weight": 20 },
+        { "rarity": "epic", "weight": 20 }
+      ],
+      "visual": {
+        "shape": "boss_dragon",
+        "color": "#e74c3c",
+        "size": 100,
+        "outlineWidth": 6,
+        "outlineColor": "#c0392b",
+        "image": "https://assets.oasiz.ai/dev/images/paper-planet/boss-paper-dragon.png"
+      }
+    }
+  ]
+}

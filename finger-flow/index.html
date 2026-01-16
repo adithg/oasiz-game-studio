@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Finger Flow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+      background: #050510;
+      font-family: 'Space Mono', monospace;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Settings Button */
+    #settingsBtn {
+      position: absolute;
+      top: 45px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    #settingsBtn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: rotate(45deg);
+    }
+
+    #settingsBtn:active {
+      transform: rotate(45deg) scale(0.95);
+    }
+
+    #settingsBtn svg {
+      width: 24px;
+      height: 24px;
+      fill: rgba(255, 255, 255, 0.8);
+      transition: transform 0.3s ease;
+    }
+
+    @media (pointer: coarse) {
+      #settingsBtn {
+        top: 120px;
+      }
+    }
+
+    /* Settings Panel */
+    #settingsPanel {
+      position: absolute;
+      top: 0;
+      right: -320px;
+      width: 300px;
+      height: 100%;
+      background: linear-gradient(160deg, rgba(15, 15, 30, 0.98), rgba(5, 5, 15, 0.98));
+      backdrop-filter: blur(20px);
+      border-left: 1px solid rgba(100, 200, 255, 0.2);
+      padding: 90px 28px 28px;
+      transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 200;
+      box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+    }
+
+    #settingsPanel.open {
+      right: 0;
+    }
+
+    @media (pointer: coarse) {
+      #settingsPanel {
+        padding-top: 150px;
+      }
+    }
+
+    #settingsPanel h2 {
+      color: #fff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 22px;
+      margin-bottom: 36px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #64c8ff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .settings-row label {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 14px;
+      letter-spacing: 1px;
+      font-weight: 400;
+    }
+
+    /* Custom Toggle Switch */
+    .toggle {
+      position: relative;
+      width: 56px;
+      height: 30px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 30px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .toggle-slider::before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 2px;
+      bottom: 2px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 50%;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background: rgba(100, 200, 255, 0.25);
+      border-color: rgba(100, 200, 255, 0.5);
+    }
+
+    .toggle input:checked + .toggle-slider::before {
+      transform: translateX(26px);
+      background: #64c8ff;
+      box-shadow: 0 0 20px rgba(100, 200, 255, 0.6), 0 0 40px rgba(100, 200, 255, 0.3);
+    }
+
+    #closeSettings {
+      position: absolute;
+      top: 30px;
+      right: 24px;
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    @media (pointer: coarse) {
+      #closeSettings {
+        top: 90px;
+      }
+    }
+
+    #closeSettings:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.4);
+      color: #fff;
+      transform: rotate(90deg);
+    }
+
+    /* Game Over Screen */
+    #gameOverScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, rgba(20, 10, 30, 0.95), rgba(5, 5, 15, 0.98));
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      pointer-events: none;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    #gameOverScreen h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 56px;
+      font-weight: 900;
+      color: #ff4466;
+      text-shadow: 0 0 40px rgba(255, 68, 102, 0.6), 0 0 80px rgba(255, 68, 102, 0.3);
+      margin-bottom: 12px;
+      letter-spacing: 6px;
+      animation: glitchText 0.3s ease;
+    }
+
+    @keyframes glitchText {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-5px); }
+      40% { transform: translateX(5px); }
+      60% { transform: translateX(-3px); }
+      80% { transform: translateX(3px); }
+    }
+
+    #deathReason {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 40px;
+      letter-spacing: 1px;
+    }
+
+    #finalScore {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 84px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 8px;
+      text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+      animation: scoreReveal 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes scoreReveal {
+      from {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .score-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      letter-spacing: 4px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    #maxCombo {
+      font-size: 16px;
+      color: #ffd700;
+      margin-bottom: 50px;
+      letter-spacing: 1px;
+    }
+
+    .restart-hint {
+      font-size: 18px;
+      color: rgba(100, 200, 255, 0.8);
+      animation: pulse 2s ease-in-out infinite;
+      letter-spacing: 2px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.02); }
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      #gameOverScreen h1 {
+        font-size: 40px;
+        letter-spacing: 4px;
+      }
+
+      #finalScore {
+        font-size: 64px;
+      }
+    }
+
+    /* Decorative elements */
+    .glow-line {
+      position: absolute;
+      width: 200px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.5), transparent);
+      animation: glowPulse 3s ease-in-out infinite;
+    }
+
+    .glow-line.top {
+      top: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .glow-line.bottom {
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.3; width: 150px; }
+      50% { opacity: 0.8; width: 250px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Settings Button -->
+  <button id="settingsBtn" aria-label="Settings">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+    </svg>
+  </button>
+
+  <!-- Settings Panel -->
+  <div id="settingsPanel">
+    <button id="closeSettings">&times;</button>
+    <h2>Settings</h2>
+    
+    <div class="settings-row">
+      <label>Music</label>
+      <div class="toggle">
+        <input type="checkbox" id="musicToggle" checked>
+        <span class="toggle-slider"></span>
+      </div>
+    </div>
+    
+    <div class="settings-row">
+      <label>Sound FX</label>
+      <div class="toggle">
+        <input type="checkbox" id="fxToggle" checked>
+        <span class="toggle-slider"></span>
+      </div>
+    </div>
+    
+    <div class="settings-row">
+      <label>Haptics</label>
+      <div class="toggle">
+        <input type="checkbox" id="hapticsToggle" checked>
+        <span class="toggle-slider"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="gameOverScreen">
+    <div class="glow-line top"></div>
+    <h1>GAME OVER</h1>
+    <p id="deathReason">You touched the wall!</p>
+    <div id="finalScore">0</div>
+    <p class="score-label">Final Score</p>
+    <p id="maxCombo">Max Combo: 0x</p>
+    <p class="restart-hint">TAP TO RESTART</p>
+    <div class="glow-line bottom"></div>
+  </div>
+
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

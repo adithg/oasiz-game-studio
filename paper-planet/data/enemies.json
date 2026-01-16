@@ -1,0 +1,246 @@
+{
+  "enemies": [
+    {
+      "id": "drifter",
+      "name": "Drifter",
+      "description": "Basic enemy that slowly homes toward the player",
+      "hp": 20,
+      "speed": 80,
+      "contactDamage": 10,
+      "attackStyle": "melee_rush",
+      "behaviorProfile": "drifter",
+      "spawnCost": 1,
+      "xpValue": 5,
+      "drops": {
+        "currency": { "min": 1, "max": 3 }
+      },
+      "visual": {
+        "shape": "circle",
+        "color": "#ff6b6b",
+        "radius": 15,
+        "outlineWidth": 3,
+        "image": "https://assets.oasiz.ai/dev/images/paper-planet/enemy-drifter.png"
+      }
+    },
+    {
+      "id": "zigzag",
+      "name": "Zigzag",
+      "description": "Approaches with lateral wave motion, harder to hit",
+      "hp": 15,
+      "speed": 120,
+      "contactDamage": 8,
+      "attackStyle": "melee_rush",
+      "behaviorProfile": "zigzag",
+      "behaviorParams": {
+        "waveAmplitude": 50,
+        "waveFrequency": 3.0
+      },
+      "spawnCost": 2,
+      "xpValue": 8,
+      "drops": {
+        "currency": { "min": 2, "max": 4 }
+      },
+      "visual": {
+        "shape": "diamond",
+        "color": "#ffa94d",
+        "size": 18,
+        "outlineWidth": 3,
+        "image": "https://assets.oasiz.ai/dev/images/paper-planet/enemy-zigzag.png"
+      }
+    },
+    {
+      "id": "dasher",
+      "name": "Dasher",
+      "description": "Charges in bursts with cooldown between dashes",
+      "hp": 25,
+      "speed": 60,
+      "dashSpeed": 400,
+      "contactDamage": 15,
+      "attackStyle": "melee_rush",
+      "behaviorProfile": "dasher",
+      "behaviorParams": {
+        "dashDuration": 0.3,
+        "dashCooldown": 2.0,
+        "telegraphTime": 0.5
+      },
+      "spawnCost": 3,
+      "xpValue": 12,
+      "drops": {
+        "currency": { "min": 3, "max": 6 }
+      },
+      "visual": {
+        "shape": "triangle",
+        "color": "#ff4757",
+        "size": 20,
+        "outlineWidth": 3,
+        "image": "https://assets.oasiz.ai/dev/images/paper-planet/enemy-dasher.png"
+      }
+    },
+    {
+      "id": "orbiter",
+      "name": "Orbiter",
+      "description": "Circles the player at a fixed radius while shooting inward",
+      "hp": 30,
+      "speed": 100,
+      "contactDamage": 5,
+      "attackStyle": "ranged",
+      "behaviorProfile": "orbiter",
+      "behaviorParams": {
+        "orbitRadius": 200,
+        "orbitSpeed": 2.0
+      },
+      "projectile": {
+        "damage": 8,
+        "speed": 300,
+        "fireRate": 1.5
+      },
+      "spawnCost": 4,
+      "xpValue": 15,
+      "drops": {
+        "currency": { "min": 4, "max": 8 }
+      },
+      "visual": {
+        "shape": "ring",
+        "color": "#5f27cd",
+        "radius": 16,
+        "outlineWidth": 4,
+        "image": "https://assets.oasiz.ai/dev/images/paper-planet/enemy-orbiter.png"
+      }
+    },
+    {
+      "id": "sniper",
+      "name": "Sniper",
+      "description": "Keeps distance and fires accurate aimed shots",
+      "hp": 20,
+      "speed": 50,
+      "contactDamage": 5,
+      "attackStyle": "ranged",
+      "behaviorProfile": "sniper",
+      "behaviorParams": {
+        "preferredDistance": 300,
+        "aimTime": 1.0
+      },
+      "projectile": {
+        "damage": 15,
+        "speed": 500,
+        "fireRate": 0.8
+      },
+      "spawnCost": 4,
+      "xpValue": 18,
+      "drops": {
+        "currency": { "min": 5, "max": 10 }
+      },
+      "visual": {
+        "shape": "crosshair",
+        "color": "#00d2d3",
+        "size": 18,
+        "outlineWidth": 2,
+        "image": "https://assets.oasiz.ai/dev/images/paper-planet/enemy-sniper.png"
+      }
+    },
+    {
+      "id": "bomber",
+      "name": "Bomber",
+      "description": "Runs in, drops explosive hazard, runs out",
+      "hp": 15,
+      "speed": 150,
+      "contactDamage": 5,
+      "attackStyle": "bomber",
+      "behaviorProfile": "bomber",
+      "behaviorParams": {
+        "dropRadius": 80,
+        "retreatDistance": 250,
+        "bombDamage": 25,
+        "bombRadius": 60,
+        "bombDelay": 1.5
+      },
+      "spawnCost": 3,
+      "xpValue": 10,
+      "drops": {
+        "currency": { "min": 3, "max": 5 }
+      },
+      "visual": {
+        "shape": "square",
+        "color": "#ff9f43",
+        "size": 14,
+        "outlineWidth": 3,
+        "image": "https://assets.oasiz.ai/dev/images/paper-planet/enemy-bomber.png"
+      }
+    },
+    {
+      "id": "splitter",
+      "name": "Splitter",
+      "description": "Dies into two smaller units",
+      "hp": 40,
+      "speed": 70,
+      "contactDamage": 12,
+      "attackStyle": "melee_rush",
+      "behaviorProfile": "drifter",
+      "onDeath": {
+        "spawn": "splitter_small",
+        "count": 2
+      },
+      "spawnCost": 5,
+      "xpValue": 20,
+      "drops": {
+        "currency": { "min": 5, "max": 10 }
+      },
+      "visual": {
+        "shape": "blob",
+        "color": "#10ac84",
+        "radius": 22,
+        "outlineWidth": 3,
+        "image": "https://assets.oasiz.ai/dev/images/paper-planet/enemy-splitter.png"
+      }
+    },
+    {
+      "id": "splitter_small",
+      "name": "Splitter Small",
+      "description": "Smaller version spawned when Splitter dies",
+      "hp": 15,
+      "speed": 100,
+      "contactDamage": 6,
+      "attackStyle": "melee_rush",
+      "behaviorProfile": "drifter",
+      "spawnCost": 0,
+      "xpValue": 5,
+      "drops": {
+        "currency": { "min": 1, "max": 2 }
+      },
+      "visual": {
+        "shape": "blob",
+        "color": "#1dd1a1",
+        "radius": 12,
+        "outlineWidth": 2,
+        "image": "https://assets.oasiz.ai/dev/images/paper-planet/enemy-splitter.png"
+      }
+    },
+    {
+      "id": "shielded",
+      "name": "Shielded",
+      "description": "Takes reduced frontal damage, weak from behind",
+      "hp": 50,
+      "speed": 60,
+      "contactDamage": 12,
+      "attackStyle": "melee_rush",
+      "behaviorProfile": "drifter",
+      "shield": {
+        "frontalReduction": 0.8,
+        "arcDegrees": 120
+      },
+      "spawnCost": 5,
+      "xpValue": 25,
+      "drops": {
+        "currency": { "min": 6, "max": 12 }
+      },
+      "visual": {
+        "shape": "shielded_circle",
+        "color": "#576574",
+        "radius": 18,
+        "shieldColor": "#c8d6e5",
+        "outlineWidth": 3,
+        "image": "https://assets.oasiz.ai/dev/images/paper-planet/enemy-shielded.png"
+      }
+    }
+  ]
+}

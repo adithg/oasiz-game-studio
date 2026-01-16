@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Police Chase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+      background: #0a0f0a;
+      font-family: 'Nunito', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #game-container {
+      position: relative;
+      width: 95vw;
+      height: 90vh;
+      max-width: 1400px;
+      max-height: 900px;
+      background: #000;
+      box-shadow: 0 0 50px rgba(0,0,0,0.8), 0 0 20px rgba(0,221,119,0.2);
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (pointer: coarse) {
+      #game-container {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        border-radius: 0;
+      }
+    }
+    
+    #game {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* UI Overlays */
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 10;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+    
+    .overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    
+    /* Start Screen - transparent to show map behind */
+    #start-screen {
+      background: linear-gradient(180deg, rgba(15, 15, 25, 0.85) 0%, rgba(10, 10, 20, 0.9) 50%, rgba(20, 20, 35, 0.85) 100%);
+      overflow: hidden;
+    }
+    
+    .start-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 2;
+      animation: fadeInUp 0.8s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* Police lights animation bar */
+    .police-lights {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      display: flex;
+      z-index: 100;
+    }
+    
+    .police-lights::before,
+    .police-lights::after {
+      content: '';
+      flex: 1;
+      animation: policeLights 0.4s infinite;
+    }
+    
+    .police-lights::before {
+      background: linear-gradient(90deg, #ff0044, #ff3366);
+      box-shadow: 0 0 15px #ff0044;
+    }
+    
+    .police-lights::after {
+      background: linear-gradient(90deg, #0066ff, #0088ff);
+      box-shadow: 0 0 15px #0066ff;
+      animation-delay: 0.2s;
+    }
+    
+    @keyframes policeLights {
+      0%, 45% { opacity: 1; }
+      50%, 100% { opacity: 0.2; }
+    }
+    
+    /* Title */
+    #start-screen h1 {
+      font-family: 'Bangers', cursive;
+      font-size: clamp(3.5rem, 14vw, 8rem);
+      color: #c8c8c8;
+      margin-bottom: 0;
+      text-shadow: 
+        0 0 10px #c8c8c8,
+        0 0 20px #c8c8c8,
+        4px 4px 0 #404040;
+      letter-spacing: 5px;
+      animation: titleGlow 2s ease-in-out infinite alternate;
+    }
+    
+    @keyframes titleGlow {
+      from {
+        text-shadow: 
+          0 0 10px #c8c8c8,
+          0 0 20px #c8c8c8,
+          4px 4px 0 #404040;
+      }
+      to {
+        text-shadow: 
+          0 0 15px #00ffaa,
+          0 0 30px #00ffaa,
+          4px 4px 0 #404040;
+      }
+    }
+    
+    #start-screen .subtitle {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      color: #ff6b35;
+      font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 5px;
+      text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+    }
+    
+    /* City preview */
+    .city-preview {
+      width: 200px;
+      height: 150px;
+      margin-bottom: 2rem;
+      position: relative;
+      animation: cityBounce 3s ease-in-out infinite;
+    }
+    
+    @keyframes cityBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .city-block {
+      position: absolute;
+      background: #8b4513;
+      border: 2px solid #5c3317;
+    }
+    
+    .city-block:nth-child(1) { left: 10px; top: 20px; width: 50px; height: 80px; background: #a0522d; }
+    .city-block:nth-child(2) { left: 70px; top: 40px; width: 60px; height: 60px; background: #cd853f; }
+    .city-block:nth-child(3) { left: 140px; top: 10px; width: 50px; height: 90px; background: #708090; }
+    
+    .city-road {
+      position: absolute;
+      background: #3a3a3a;
+    }
+    
+    .city-road.h { left: 0; right: 0; height: 20px; top: 110px; }
+    .city-road.v { top: 0; bottom: 0; width: 20px; left: 90px; }
+    
+    .preview-car {
+      position: absolute;
+      width: 15px;
+      height: 25px;
+      background: #c8c8c8;
+      border-radius: 4px;
+      left: 85px;
+      top: 102px;
+      animation: carDrive 4s ease-in-out infinite;
+      box-shadow: 0 0 10px #c8c8c8;
+    }
+    
+    @keyframes carDrive {
+      0%, 100% { left: 85px; top: 102px; }
+      25% { left: 170px; top: 102px; }
+      50% { left: 170px; top: 40px; }
+      75% { left: 30px; top: 40px; }
+    }
+    
+    .preview-police {
+      position: absolute;
+      width: 14px;
+      height: 22px;
+      background: #1a1a3a;
+      border-radius: 3px;
+      left: 60px;
+      top: 103px;
+      animation: policeDrive 4s ease-in-out infinite 0.5s;
+    }
+    
+    .preview-police::before {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      height: 4px;
+      background: #ff0044;
+      animation: policeFlash 0.3s infinite;
+    }
+    
+    @keyframes policeFlash {
+      0%, 50% { background: #ff0044; }
+      51%, 100% { background: #0066ff; }
+    }
+    
+    @keyframes policeDrive {
+      0%, 100% { left: 60px; top: 103px; }
+      25% { left: 150px; top: 103px; }
+      50% { left: 150px; top: 55px; }
+      75% { left: 50px; top: 55px; }
+    }
+    
+    /* Instructions */
+    .instructions {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .instruction {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #aaa;
+      font-size: 0.85rem;
+    }
+    
+    .instruction-icon {
+      width: 50px;
+      height: 50px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .instruction-icon svg {
+      width: 28px;
+      height: 28px;
+      fill: #c8c8c8;
+    }
+    
+    /* Start button */
+    .start-btn {
+      font-family: 'Bangers', cursive;
+      font-size: clamp(1.6rem, 4.5vw, 2.2rem);
+      padding: 1rem 3.5rem;
+      background: linear-gradient(180deg, #ff6b35 0%, #e85d26 100%);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      pointer-events: auto;
+      box-shadow: 
+        0 5px 0 #a33d15,
+        0 0 25px rgba(255, 107, 53, 0.4);
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+      letter-spacing: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .start-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+      animation: btnShine 3s infinite;
+    }
+    
+    @keyframes btnShine {
+      0% { left: -100%; }
+      50%, 100% { left: 100%; }
+    }
+    
+    .start-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 
+        0 8px 0 #a33d15,
+        0 0 40px rgba(255, 107, 53, 0.6);
+    }
+    
+    .start-btn:active {
+      transform: translateY(2px);
+      box-shadow: 
+        0 3px 0 #a33d15,
+        0 0 15px rgba(255, 107, 53, 0.3);
+    }
+    
+    /* Vehicle Gallery */
+    .vehicle-gallery {
+      margin-top: 1.2rem;
+      width: 100%;
+      max-width: 420px;
+      animation: fadeInUp 0.8s ease-out 0.3s both;
+    }
+    
+    /* Vehicle Showcase - Large Preview */
+    .vehicle-showcase {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(0,0,0,0.5);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 0.8rem;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .showcase-car {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100px;
+      height: 130px;
+    }
+    
+    #showcase-canvas {
+      border-radius: 8px;
+    }
+    
+    .showcase-preview {
+      border-radius: 10px;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    /* Showcase uses canvas now, no size needed */
+    
+    .showcase-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .showcase-name {
+      font-family: 'Bangers', cursive;
+      font-size: 1.3rem;
+      color: #fff;
+      letter-spacing: 1px;
+      margin-bottom: 0.2rem;
+    }
+    
+    .showcase-desc {
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.7rem;
+      color: #888;
+      margin-bottom: 0.6rem;
+    }
+    
+    .showcase-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    
+    .stat-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .stat-name {
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.55rem;
+      font-weight: 700;
+      color: #666;
+      width: 38px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .stat-track {
+      flex: 1;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .stat-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff6b35, #ffaa00);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    
+    /* Carousel wrapper */
+    .carousel-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    
+    .arrow-btn {
+      width: 28px;
+      height: 50px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.1);
+      color: #aaa;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      pointer-events: auto;
+      flex-shrink: 0;
+    }
+    
+    .arrow-btn:hover {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+    }
+    
+    .arrow-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .vehicle-carousel {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding: 0.4rem 0;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      flex: 1;
+    }
+    
+    .vehicle-carousel::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .vehicle-card {
+      flex-shrink: 0;
+      width: 52px;
+      padding: 0.4rem;
+      background: rgba(0,0,0,0.4);
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      pointer-events: auto;
+    }
+    
+    .vehicle-card:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.2);
+      transform: translateY(-2px);
+    }
+    
+    .vehicle-card.selected {
+      border-color: #ff6b35;
+      background: rgba(255,107,53,0.2);
+      box-shadow: 0 0 12px rgba(255,107,53,0.4);
+    }
+    
+    .vehicle-preview {
+      width: 32px;
+      height: 42px;
+      margin: 0 auto 0.25rem;
+      border-radius: 6px;
+      position: relative;
+    }
+    
+    .vehicle-name {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 0.5rem;
+      color: #ccc;
+      text-align: center;
+      white-space: nowrap;
+    }
+    
+    /* Vehicle preview colors - shared between showcase and card */
+    .vehicle-preview.sedan, .showcase-preview.sedan {
+      background: linear-gradient(180deg, #c8c8c8 0%, #909090 100%);
+      box-shadow: 0 0 12px rgba(200,200,200,0.5);
+    }
+    .vehicle-preview.sports, .showcase-preview.sports {
+      background: linear-gradient(180deg, #ff3344 0%, #aa1122 100%);
+      box-shadow: 0 0 12px rgba(255,51,68,0.5);
+    }
+    .vehicle-preview.muscle, .showcase-preview.muscle {
+      background: linear-gradient(180deg, #1a1a2a 0%, #0a0a15 100%);
+      box-shadow: 0 0 12px rgba(255,102,0,0.5);
+      border: 1px solid #ff6600;
+    }
+    .vehicle-preview.buggy, .showcase-preview.buggy {
+      background: linear-gradient(180deg, #44cc66 0%, #228844 100%);
+      box-shadow: 0 0 12px rgba(68,204,102,0.5);
+      border-radius: 50%;
+    }
+    .vehicle-preview.tank, .showcase-preview.tank {
+      background: linear-gradient(180deg, #556655 0%, #334433 100%);
+      box-shadow: 0 0 12px rgba(85,102,85,0.5);
+      border-radius: 4px;
+    }
+    .vehicle-preview.hotrod, .showcase-preview.hotrod {
+      background: linear-gradient(180deg, #880000 0%, #550000 100%);
+      box-shadow: 0 0 12px rgba(255,68,0,0.5);
+    }
+    
+    /* Stripes on vehicle previews */
+    .vehicle-preview::before, .showcase-preview::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 35%;
+      width: 10%;
+      height: 100%;
+      background: rgba(255,255,255,0.4);
+      border-radius: 2px;
+    }
+    .vehicle-preview::after, .showcase-preview::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 55%;
+      width: 10%;
+      height: 100%;
+      background: rgba(255,255,255,0.4);
+      border-radius: 2px;
+    }
+    
+    /* Mobile responsive vehicle gallery */
+    @media (pointer: coarse) {
+      .vehicle-gallery {
+        max-width: 95%;
+        margin-top: 1rem;
+      }
+      
+      .vehicle-showcase {
+        padding: 0.8rem;
+        gap: 0.8rem;
+      }
+      
+      .showcase-car {
+        width: 70px;
+        height: 90px;
+      }
+      
+      #showcase-canvas {
+        width: 80px;
+        height: 100px;
+      }
+      
+      .showcase-name {
+        font-size: 1.1rem;
+      }
+      
+      .showcase-desc {
+        font-size: 0.65rem;
+      }
+      
+      .vehicle-card {
+        width: 48px;
+        padding: 0.35rem;
+      }
+      
+      .vehicle-preview {
+        width: 28px;
+        height: 38px;
+      }
+      
+      .vehicle-name {
+        font-size: 0.45rem;
+      }
+      
+      .arrow-btn {
+        width: 24px;
+        height: 44px;
+        font-size: 0.7rem;
+      }
+    }
+    
+    @media (max-width: 380px) {
+      .vehicle-showcase {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .showcase-info {
+        width: 100%;
+      }
+      
+      .stat-name {
+        width: 32px;
+        font-size: 0.5rem;
+      }
+    }
+    
+    /* HUD */
+    #hud {
+      position: absolute;
+      top: 12px;
+      left: 0;
+      width: 100%;
+      padding: 0 1rem;
+      display: flex;
+      justify-content: center;
+      z-index: 5;
+      pointer-events: none;
+    }
+    
+    @media (pointer: coarse) {
+      #hud {
+        top: 65px;
+      }
+    }
+    
+    #hud.hidden {
+      display: none;
+    }
+    
+     .hud-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(0,0,0,0.35);
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+      
+      .hud-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0 0.5rem;
+      }
+      
+      .hud-stat:first-child {
+        border-right: 1px solid rgba(255,255,255,0.15);
+        padding-right: 1rem;
+      }
+      
+      .hud-icon {
+        width: 20px;
+        height: 20px;
+        fill: rgba(255,255,255,0.6);
+        flex-shrink: 0;
+      }
+      
+      .hud-stat span {
+        font-family: 'Nunito', sans-serif;
+        font-weight: 800;
+        font-size: clamp(1.2rem, 3.5vw, 1.5rem);
+        color: #fff;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      }
+    
+    .score-display span {
+      font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+      font-weight: 700;
+      color: #ffffff;
+      font-size: 1.1em;
+      text-shadow: 
+        0 0 8px rgba(255,255,255,0.4);
+    }
+    
+    /* Game Over Screen */
+    #game-over {
+      background: radial-gradient(ellipse at center, rgba(15, 10, 10, 0.94) 0%, rgba(5, 5, 8, 0.98) 100%);
+      text-align: center;
+    }
+    
+    .game-over-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    #game-over h2 {
+      font-family: 'Bangers', cursive;
+      font-size: clamp(3.5rem, 14vw, 7rem);
+      color: #ff3333;
+      margin-bottom: 1.5rem;
+      text-shadow: 
+        0 0 20px #ff3333,
+        0 0 40px #ff3333,
+        0 0 60px #ff0000,
+        4px 4px 0 #550000;
+      letter-spacing: 6px;
+      animation: bustedPulse 0.6s ease-out;
+    }
+    
+    @keyframes bustedPulse {
+      0% { transform: scale(2); opacity: 0; filter: blur(10px); }
+      60% { transform: scale(0.95); filter: blur(0); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .stats-grid {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      animation: statsSlideIn 0.5s ease-out 0.2s both;
+    }
+    
+    @keyframes statsSlideIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .stat-item {
+      background: linear-gradient(145deg, rgba(40, 40, 45, 0.9), rgba(25, 25, 30, 0.95));
+      padding: 1.2rem 2rem;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      min-width: 140px;
+      text-align: center;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    
+    .stat-value {
+      font-family: 'Bangers', cursive;
+      font-size: clamp(2.2rem, 7vw, 3.5rem);
+      color: #ffffff;
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+      line-height: 1;
+    }
+    
+    .stat-label {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      color: #777;
+      font-size: clamp(0.6rem, 1.6vw, 0.75rem);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-top: 0.5rem;
+    }
+    
+    .total-score {
+      margin-bottom: 2rem;
+      text-align: center;
+      animation: scoreReveal 0.6s ease-out 0.4s both;
+    }
+    
+    .total-label {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      color: #666;
+      font-size: clamp(0.7rem, 1.8vw, 0.9rem);
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      margin-bottom: 0.2rem;
+    }
+    
+    .total-value {
+      font-family: 'Bangers', cursive;
+      font-size: clamp(4.5rem, 16vw, 8rem);
+      color: #ffffff;
+      text-shadow: 
+        0 0 20px rgba(255, 255, 255, 0.6),
+        0 0 40px rgba(255, 255, 255, 0.3),
+        4px 4px 0 #333;
+      line-height: 1;
+    }
+    
+    @keyframes scoreReveal {
+      from { 
+        transform: scale(0.5);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    
+    .restart-btn {
+      font-family: 'Bangers', cursive;
+      font-size: clamp(1.3rem, 3.5vw, 1.8rem);
+      padding: 0.9rem 2.5rem;
+      background: linear-gradient(180deg, #c8c8c8 0%, #909090 100%);
+      color: #404040;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      pointer-events: auto;
+      box-shadow: 
+        0 4px 0 #606060,
+        0 0 25px rgba(0, 221, 119, 0.4);
+      letter-spacing: 2px;
+      animation: btnAppear 0.5s ease-out 0.5s both;
+    }
+    
+    @keyframes btnAppear {
+      from { 
+        transform: translateY(30px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    .restart-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 6px 0 #606060,
+        0 0 40px rgba(0, 221, 119, 0.5);
+    }
+    
+    .restart-btn:active {
+      transform: translateY(2px);
+      box-shadow: 
+        0 2px 0 #606060,
+        0 0 15px rgba(0, 221, 119, 0.3);
+    }
+
+    /* Control hints */
+    .control-hint {
+      display: none;
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Nunito', sans-serif;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.35);
+      font-size: 0.85rem;
+      z-index: 5;
+      letter-spacing: 1px;
+    }
+    
+    @media (hover: hover) and (pointer: fine) {
+      .control-hint {
+        display: block;
+      }
+    }
+    
+    .mobile-hint {
+      display: none;
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Nunito', sans-serif;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.35);
+      font-size: 0.85rem;
+      z-index: 5;
+    }
+    
+    @media (pointer: coarse) {
+      .mobile-hint {
+        display: block;
+      }
+    }
+    
+    /* Mobile Steering Controls */
+    .mobile-controls {
+      display: none;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 180px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    @media (pointer: coarse) {
+      .mobile-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        padding: 0 10px 20px;
+      }
+    }
+    
+    .steer-btn {
+      width: 100px;
+      height: 100px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    
+    .steer-btn svg {
+      width: 50px;
+      height: 50px;
+      fill: rgba(255, 255, 255, 0.6);
+    }
+    
+    .steer-btn:active, .steer-btn.active {
+      background: rgba(255, 255, 255, 0.35);
+      transform: scale(0.95);
+    }
+    
+    .steer-btn:active svg, .steer-btn.active svg {
+      fill: rgba(255, 255, 255, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game"></canvas>
+    
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div class="hud-container">
+        <div class="hud-stat">
+          <svg class="hud-icon" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+          <span id="time-display">0:00</span>
+        </div>
+        <div class="hud-stat">
+          <svg class="hud-icon" viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
+          <span id="crash-display">0</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Start Screen -->
+    <div id="start-screen" class="overlay">
+      <div class="police-lights"></div>
+      
+      <div class="start-content">
+        <h1>POLICE CHASE</h1>
+        <p class="subtitle">Open World Mayhem</p>
+        
+        <div class="instructions">
+          <div class="instruction">
+            <div class="instruction-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+            </div>
+            Drive freely
+          </div>
+          <div class="instruction">
+            <div class="instruction-icon">
+              <svg viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
+            </div>
+            Evade police
+          </div>
+          <div class="instruction">
+            <div class="instruction-icon">
+              <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/></svg>
+            </div>
+            Make them crash
+          </div>
+        </div>
+        
+        <button class="start-btn" id="start-btn">DRIVE!</button>
+        
+        <!-- Vehicle Gallery -->
+        <div class="vehicle-gallery">
+          <!-- Large Preview -->
+          <div class="vehicle-showcase">
+            <div class="showcase-car" id="showcase-car">
+              <canvas id="showcase-canvas" width="100" height="130"></canvas>
+            </div>
+            <div class="showcase-info">
+              <div class="showcase-name" id="showcase-name">Street Sedan</div>
+              <div class="showcase-desc" id="showcase-desc">Balanced handling for all situations</div>
+              <div class="showcase-stats">
+                <div class="stat-bar">
+                  <span class="stat-name">SPEED</span>
+                  <div class="stat-track"><div class="stat-fill" id="stat-speed" style="width: 65%"></div></div>
+                </div>
+                <div class="stat-bar">
+                  <span class="stat-name">ACCEL</span>
+                  <div class="stat-track"><div class="stat-fill" id="stat-accel" style="width: 55%"></div></div>
+                </div>
+                <div class="stat-bar">
+                  <span class="stat-name">GRIP</span>
+                  <div class="stat-track"><div class="stat-fill" id="stat-grip" style="width: 70%"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Carousel -->
+          <div class="carousel-wrapper">
+            <button class="arrow-btn arrow-left" id="prev-vehicle">&#9664;</button>
+            <div class="vehicle-carousel">
+              <div class="vehicle-card selected" data-vehicle="sedan">
+                <div class="vehicle-preview sedan"></div>
+                <div class="vehicle-name">Sedan</div>
+              </div>
+              <div class="vehicle-card" data-vehicle="sports">
+                <div class="vehicle-preview sports"></div>
+                <div class="vehicle-name">GT</div>
+              </div>
+              <div class="vehicle-card" data-vehicle="muscle">
+                <div class="vehicle-preview muscle"></div>
+                <div class="vehicle-name">V8</div>
+              </div>
+              <div class="vehicle-card" data-vehicle="buggy">
+                <div class="vehicle-preview buggy"></div>
+                <div class="vehicle-name">Buggy</div>
+              </div>
+              <div class="vehicle-card" data-vehicle="tank">
+                <div class="vehicle-preview tank"></div>
+                <div class="vehicle-name">Tank</div>
+              </div>
+              <div class="vehicle-card" data-vehicle="hotrod">
+                <div class="vehicle-preview hotrod"></div>
+                <div class="vehicle-name">Hotrod</div>
+              </div>
+            </div>
+            <button class="arrow-btn arrow-right" id="next-vehicle">&#9654;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Game Over Screen -->
+    <div id="game-over" class="overlay hidden">
+      <div class="game-over-content">
+        <h2>BUSTED!</h2>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" id="final-time">0:00</div>
+            <div class="stat-label">TIME SURVIVED</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="final-crashes">0</div>
+            <div class="stat-label">CRASHES CAUSED</div>
+          </div>
+        </div>
+        <div class="total-score">
+          <div class="total-label">TOTAL SCORE</div>
+          <div class="total-value" id="final-score">0</div>
+        </div>
+        <button class="restart-btn" id="restart-btn">TRY AGAIN</button>
+      </div>
+    </div>
+    
+    <div class="control-hint">WASD or Arrow Keys to drive</div>
+    <div class="mobile-hint">Tap left/right to steer</div>
+    
+    <!-- Mobile Controls -->
+    <div class="mobile-controls">
+      <button class="steer-btn steer-left" id="steer-left">
+        <svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+      </button>
+      <button class="steer-btn steer-right" id="steer-right">
+        <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+      </button>
+    </div>
+  </div>
+  
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

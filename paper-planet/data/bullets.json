@@ -1,0 +1,227 @@
+{
+  "bullets": [
+    {
+      "id": "pencil_shot",
+      "name": "Pencil Shot",
+      "description": "Basic fast projectile with reliable damage",
+      "tier": 1,
+      "baseDamage": 10,
+      "fireRateMultiplier": 1.0,
+      "speed": 600,
+      "lifetime": 2.0,
+      "collisionRadius": 8,
+      "pierce": 0,
+      "bounce": 0,
+      "chain": 0,
+      "aoeRadius": 0,
+      "damageType": "kinetic",
+      "statusEffects": [],
+      "visual": {
+        "shape": "line",
+        "color": "#2d2d2d",
+        "length": 20,
+        "width": 3
+      }
+    },
+    {
+      "id": "ink_blob",
+      "name": "Ink Blob",
+      "description": "Slow heavy projectile that leaves damaging puddles",
+      "tier": 1,
+      "baseDamage": 25,
+      "fireRateMultiplier": 0.6,
+      "speed": 300,
+      "lifetime": 3.0,
+      "collisionRadius": 12,
+      "pierce": 0,
+      "bounce": 0,
+      "chain": 0,
+      "aoeRadius": 30,
+      "damageType": "poison",
+      "statusEffects": [
+        { "type": "poison", "stacks": 1, "chance": 0.5 }
+      ],
+      "visual": {
+        "shape": "circle",
+        "color": "#1a1a2e",
+        "radius": 10
+      }
+    },
+    {
+      "id": "bee_pellet",
+      "name": "Bee Pellet",
+      "description": "Low damage but spawns seeking micro-bees",
+      "tier": 1,
+      "baseDamage": 5,
+      "fireRateMultiplier": 0.8,
+      "speed": 400,
+      "lifetime": 2.0,
+      "collisionRadius": 6,
+      "pierce": 0,
+      "bounce": 0,
+      "chain": 0,
+      "aoeRadius": 0,
+      "damageType": "kinetic",
+      "statusEffects": [],
+      "onHit": {
+        "spawnProjectile": "bee_micro",
+        "count": 2,
+        "chance": 1.0
+      },
+      "visual": {
+        "shape": "hexagon",
+        "color": "#ffc107",
+        "radius": 6
+      }
+    },
+    {
+      "id": "bee_micro",
+      "name": "Micro Bee",
+      "description": "Tiny seeking projectile spawned by bee items",
+      "tier": 0,
+      "baseDamage": 3,
+      "fireRateMultiplier": 1.0,
+      "speed": 250,
+      "lifetime": 1.5,
+      "collisionRadius": 4,
+      "pierce": 0,
+      "bounce": 0,
+      "chain": 0,
+      "aoeRadius": 0,
+      "damageType": "kinetic",
+      "statusEffects": [],
+      "homing": {
+        "enabled": true,
+        "turnRate": 3.0,
+        "seekRadius": 150
+      },
+      "visual": {
+        "shape": "triangle",
+        "color": "#ffc107",
+        "radius": 4
+      }
+    },
+    {
+      "id": "spark_bolt",
+      "name": "Spark Bolt",
+      "description": "Electric projectile that can chain between enemies",
+      "tier": 1,
+      "baseDamage": 12,
+      "fireRateMultiplier": 0.9,
+      "speed": 550,
+      "lifetime": 2.0,
+      "collisionRadius": 8,
+      "pierce": 0,
+      "bounce": 0,
+      "chain": 2,
+      "chainRange": 100,
+      "chainDamageMultiplier": 0.7,
+      "aoeRadius": 0,
+      "damageType": "electric",
+      "statusEffects": [
+        { "type": "shock", "stacks": 1, "chance": 0.3 }
+      ],
+      "visual": {
+        "shape": "lightning",
+        "color": "#00d4ff",
+        "length": 15
+      }
+    },
+    {
+      "id": "rocket_bomb",
+      "name": "Rocket Bomb",
+      "description": "Slow explosive projectile with huge area damage",
+      "tier": 1,
+      "baseDamage": 40,
+      "fireRateMultiplier": 0.4,
+      "speed": 200,
+      "lifetime": 4.0,
+      "collisionRadius": 15,
+      "pierce": 0,
+      "bounce": 0,
+      "chain": 0,
+      "aoeRadius": 80,
+      "damageType": "explosive",
+      "statusEffects": [],
+      "visual": {
+        "shape": "rocket",
+        "color": "#ff4444",
+        "length": 25,
+        "width": 8
+      }
+    },
+    {
+      "id": "paper_shard",
+      "name": "Paper Shard",
+      "description": "Shotgun spread of short-range shards",
+      "tier": 1,
+      "baseDamage": 6,
+      "fireRateMultiplier": 0.7,
+      "speed": 500,
+      "lifetime": 0.5,
+      "collisionRadius": 5,
+      "pierce": 0,
+      "bounce": 0,
+      "chain": 0,
+      "aoeRadius": 0,
+      "damageType": "kinetic",
+      "statusEffects": [],
+      "spread": {
+        "count": 5,
+        "angle": 30
+      },
+      "visual": {
+        "shape": "triangle",
+        "color": "#f5f5dc",
+        "radius": 5
+      }
+    },
+    {
+      "id": "staple_piercer",
+      "name": "Staple Piercer",
+      "description": "Pierces through multiple enemies",
+      "tier": 1,
+      "baseDamage": 15,
+      "fireRateMultiplier": 0.8,
+      "speed": 700,
+      "lifetime": 2.5,
+      "collisionRadius": 6,
+      "pierce": 3,
+      "bounce": 0,
+      "chain": 0,
+      "aoeRadius": 0,
+      "damageType": "kinetic",
+      "statusEffects": [],
+      "visual": {
+        "shape": "staple",
+        "color": "#c0c0c0",
+        "width": 12,
+        "height": 6
+      }
+    },
+    {
+      "id": "eraser_pulse",
+      "name": "Eraser Pulse",
+      "description": "Pushes enemies back with knockback",
+      "tier": 1,
+      "baseDamage": 8,
+      "fireRateMultiplier": 1.1,
+      "speed": 450,
+      "lifetime": 1.5,
+      "collisionRadius": 10,
+      "pierce": 0,
+      "bounce": 0,
+      "chain": 0,
+      "aoeRadius": 0,
+      "damageType": "kinetic",
+      "statusEffects": [],
+      "knockback": 150,
+      "visual": {
+        "shape": "rectangle",
+        "color": "#ffb6c1",
+        "width": 15,
+        "height": 10
+      }
+    }
+  ]
+}

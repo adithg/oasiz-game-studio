@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Lunar Lander</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+      background: #0a0a12;
+      font-family: 'Space Mono', monospace;
+    }
+    
+    #game {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    /* UI Overlays */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 10;
+      transition: opacity 0.3s ease;
+    }
+    
+    .overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    
+    /* Start Screen */
+    #start-screen {
+      background: radial-gradient(ellipse at 50% 20%, #1a1a2e 0%, #0a0a12 60%);
+      overflow: hidden;
+    }
+    
+    /* Star field */
+    .stars {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,0.8), transparent),
+        radial-gradient(2px 2px at 60% 20%, rgba(255,255,255,0.9), transparent),
+        radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 80% 40%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(2px 2px at 90% 60%, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 10% 60%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 30% 90%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1px 1px at 85% 15%, rgba(255,255,255,0.5), transparent);
+      animation: twinkle 4s ease-in-out infinite alternate;
+    }
+    
+    @keyframes twinkle {
+      from { opacity: 0.7; }
+      to { opacity: 1; }
+    }
+    
+    .start-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 2;
+      animation: fadeInUp 0.8s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    #start-screen h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: clamp(2rem, 10vw, 4.5rem);
+      color: #00ffcc;
+      margin-bottom: 0.3rem;
+      text-shadow: 0 0 20px rgba(0, 255, 204, 0.5), 0 0 40px rgba(0, 255, 204, 0.3);
+      letter-spacing: 0.1em;
+    }
+    
+    #start-screen .subtitle {
+      font-family: 'Space Mono', monospace;
+      color: #888;
+      font-size: clamp(0.7rem, 2vw, 0.9rem);
+      margin-bottom: 2rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+    }
+    
+    /* Lander illustration */
+    .lander-preview {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 2rem;
+      position: relative;
+      animation: landerFloat 3s ease-in-out infinite;
+    }
+    
+    @keyframes landerFloat {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-15px) rotate(2deg); }
+    }
+    
+    .lander-preview svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Flame effect */
+    .flame {
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 30px;
+      height: 40px;
+      background: linear-gradient(to top, transparent, #ff6600, #ffcc00);
+      clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+      animation: flicker 0.1s infinite alternate;
+      opacity: 0.8;
+    }
+    
+    @keyframes flicker {
+      from { transform: translateX(-50%) scaleY(0.9); opacity: 0.7; }
+      to { transform: translateX(-50%) scaleY(1.1); opacity: 1; }
+    }
+    
+    .instructions {
+      color: #666;
+      font-size: clamp(0.65rem, 1.8vw, 0.85rem);
+      text-align: center;
+      margin-bottom: 2rem;
+      line-height: 1.8;
+    }
+    
+    .instructions strong {
+      color: #00ffcc;
+    }
+    
+    .start-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: clamp(1rem, 3vw, 1.3rem);
+      padding: 1rem 3rem;
+      background: transparent;
+      color: #00ffcc;
+      border: 2px solid #00ffcc;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      pointer-events: auto;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .start-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 204, 0.2), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .start-btn:hover::before {
+      left: 100%;
+    }
+    
+    .start-btn:hover {
+      background: rgba(0, 255, 204, 0.1);
+      box-shadow: 0 0 30px rgba(0, 255, 204, 0.3), inset 0 0 20px rgba(0, 255, 204, 0.1);
+    }
+    
+    /* HUD */
+    #hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      z-index: 5;
+      pointer-events: none;
+    }
+    
+    #hud.hidden {
+      display: none;
+    }
+    
+    .hud-left, .hud-right {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    
+    .hud-right {
+      align-items: flex-end;
+    }
+    
+    .hud-item {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(0.7rem, 2vw, 0.9rem);
+      color: #00ffcc;
+      text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+    }
+    
+    .hud-item.warning {
+      color: #ff6600;
+      text-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
+    }
+    
+    .hud-item.danger {
+      color: #ff3333;
+      text-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+      animation: blink 0.5s infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .fuel-bar {
+      width: 120px;
+      height: 8px;
+      background: rgba(0, 255, 204, 0.2);
+      border: 1px solid #00ffcc;
+      margin-top: 0.3rem;
+    }
+    
+    .fuel-bar-inner {
+      height: 100%;
+      background: #00ffcc;
+      transition: width 0.1s linear;
+    }
+    
+    /* Mobile Controls */
+    #controls {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: none;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 5;
+      pointer-events: none;
+    }
+    
+    #controls.hidden {
+      display: none !important;
+    }
+    
+    .control-group {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .control-btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 255, 204, 0.1);
+      border: 2px solid rgba(0, 255, 204, 0.5);
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.1s ease;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .control-btn:active,
+    .control-btn.active {
+      background: rgba(0, 255, 204, 0.3);
+      border-color: #00ffcc;
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+    }
+    
+    .control-btn svg {
+      width: 30px;
+      height: 30px;
+      fill: #00ffcc;
+    }
+    
+    .thrust-btn {
+      width: 100px;
+      height: 100px;
+    }
+    
+    .thrust-btn svg {
+      width: 50px;
+      height: 50px;
+    }
+    
+    /* Show controls only on mobile */
+    @media (max-width: 768px), (pointer: coarse) {
+      #controls:not(.hidden) {
+        display: flex;
+      }
+    }
+    
+    /* Game Over Screen */
+    #game-over {
+      background: rgba(10, 10, 18, 0.95);
+    }
+    
+    #game-over h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1.5rem, 6vw, 3rem);
+      margin-bottom: 0.5rem;
+    }
+    
+    #game-over h2.success {
+      color: #00ffcc;
+      text-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+    }
+    
+    #game-over h2.crash {
+      color: #ff3333;
+      text-shadow: 0 0 20px rgba(255, 51, 51, 0.5);
+    }
+    
+    #game-over .score {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(2rem, 10vw, 5rem);
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.3rem;
+    }
+    
+    #game-over .score-label {
+      font-family: 'Space Mono', monospace;
+      color: #666;
+      font-size: clamp(0.7rem, 2vw, 0.9rem);
+      margin-bottom: 2rem;
+      letter-spacing: 0.2em;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .stat {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.5rem;
+      color: #00ffcc;
+    }
+    
+    .stat-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    
+    .restart-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      padding: 0.8rem 2.5rem;
+      background: transparent;
+      color: #00ffcc;
+      border: 2px solid #00ffcc;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      pointer-events: auto;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    
+    .restart-btn:hover {
+      background: rgba(0, 255, 204, 0.1);
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+    }
+
+    /* Desktop keyboard hints */
+    .keyboard-hint {
+      display: none;
+    }
+    
+    @media (hover: hover) and (pointer: fine) {
+      .keyboard-hint {
+        display: block;
+        position: fixed;
+        bottom: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: 'Space Mono', monospace;
+        color: #444;
+        font-size: 0.75rem;
+        z-index: 5;
+        letter-spacing: 0.1em;
+      }
+    }
+    
+    /* Level indicator */
+    .level-indicator {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1rem, 3vw, 1.5rem);
+      color: #00ffcc;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div class="hud-item" id="altitude">ALT: 0m</div>
+      <div class="hud-item" id="velocity-y">VEL-Y: 0</div>
+      <div class="hud-item" id="velocity-x">VEL-X: 0</div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-item" id="fuel">FUEL: 100%</div>
+      <div class="fuel-bar">
+        <div class="fuel-bar-inner" id="fuel-bar"></div>
+      </div>
+      <div class="hud-item" id="score-display">SCORE: 0</div>
+    </div>
+  </div>
+  
+  <!-- Mobile Controls -->
+  <div id="controls" class="hidden">
+    <div class="control-group">
+      <button class="control-btn" id="btn-left" aria-label="Rotate Left">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </button>
+      <button class="control-btn" id="btn-right" aria-label="Rotate Right">
+        <svg viewBox="0 0 24 24"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>
+      </button>
+    </div>
+    <button class="control-btn thrust-btn" id="btn-thrust" aria-label="Thrust">
+      <svg viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+    </button>
+  </div>
+  
+  <!-- Start Screen -->
+  <div id="start-screen" class="overlay">
+    <div class="stars"></div>
+    <div class="start-content">
+      <h1>LUNAR LANDER</h1>
+      <div class="subtitle">Apollo Mission Simulator</div>
+      
+      <div class="lander-preview">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Lander body -->
+          <polygon points="50,15 70,45 65,50 35,50 30,45" fill="#c0c0c0" stroke="#00ffcc" stroke-width="2"/>
+          <!-- Descent stage -->
+          <rect x="30" y="50" width="40" height="20" fill="#808080" stroke="#00ffcc" stroke-width="2"/>
+          <!-- Landing legs -->
+          <line x1="30" y1="70" x2="15" y2="85" stroke="#00ffcc" stroke-width="3"/>
+          <line x1="70" y1="70" x2="85" y2="85" stroke="#00ffcc" stroke-width="3"/>
+          <!-- Foot pads -->
+          <circle cx="15" cy="87" r="4" fill="#00ffcc"/>
+          <circle cx="85" cy="87" r="4" fill="#00ffcc"/>
+          <!-- Window -->
+          <circle cx="50" cy="30" r="8" fill="#1a1a2e" stroke="#00ffcc" stroke-width="1.5"/>
+          <!-- Antenna -->
+          <line x1="50" y1="15" x2="50" y2="5" stroke="#00ffcc" stroke-width="2"/>
+          <circle cx="50" cy="3" r="2" fill="#00ffcc"/>
+        </svg>
+        <div class="flame"></div>
+      </div>
+      
+      <div class="instructions">
+        <strong>ARROW UP / W</strong> - Main Thruster<br>
+        <strong>ARROW LEFT/RIGHT / A/D</strong> - Rotate<br>
+        Land safely on the <strong>green pads</strong> to score points
+      </div>
+      
+      <button class="start-btn" id="start-btn">LAUNCH MISSION</button>
+    </div>
+  </div>
+  
+  <!-- Game Over Screen -->
+  <div id="game-over" class="overlay hidden">
+    <h2 id="result-title" class="crash">MISSION FAILED</h2>
+    <div class="score" id="final-score">0</div>
+    <div class="score-label">TOTAL SCORE</div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="landings-count">0</div>
+        <div class="stat-label">Landings</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="fuel-remaining">0%</div>
+        <div class="stat-label">Fuel Left</div>
+      </div>
+    </div>
+    <button class="restart-btn" id="restart-btn">TRY AGAIN</button>
+  </div>
+  
+  <div class="keyboard-hint">ARROW KEYS or W/A/D to control</div>
+  
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

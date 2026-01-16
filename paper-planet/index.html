@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, minimal-ui">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Paper Planet</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            background: #e6dfcc; /* Slightly darker background for the "desk" */
+            color: #2d2d2d;
+            font-family: 'Comic Neue', cursive, sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #fdf6e3;
+            overflow: hidden;
+            box-shadow: none;
+        }
+
+        @media (min-width: 1024px) {
+            #game-container {
+                width: min(90vw, 1200px);
+                height: min(90vh, 800px);
+                aspect-ratio: 16 / 9;
+                border: 6px solid #2d2d2d;
+                border-radius: 12px;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            }
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* HUD Overlay */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 45px 20px 15px 20px; /* Offset for desktop safe area */
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 5;
+        }
+
+        .hud-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .hud-box {
+            background: rgba(255, 255, 255, 0.9);
+            border: 4px solid #2d2d2d;
+            border-radius: 12px;
+            padding: 10px 18px;
+            box-shadow: 4px 4px 0 #2d2d2d;
+        }
+
+        .hud-label {
+            font-family: 'Bangers', cursive;
+            font-size: 0.8rem;
+            color: #666;
+            letter-spacing: 2px;
+        }
+
+        .hud-value {
+            font-family: 'Bangers', cursive;
+            font-size: 2rem;
+            color: #2d2d2d;
+            line-height: 1;
+        }
+
+        .hp-bar-container {
+            width: 150px;
+            height: 20px;
+            background: #ddd;
+            border: 3px solid #2d2d2d;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 2px 2px 0 #2d2d2d;
+        }
+
+        .hp-bar {
+            height: 100%;
+            background: linear-gradient(180deg, #ff6b6b 0%, #ee5a5a 100%);
+            transition: width 0.3s ease;
+        }
+
+        .round-display {
+            text-align: center;
+        }
+
+        /* Overlays */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(253, 246, 227, 0.95);
+            z-index: 10;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .content {
+            text-align: center;
+            padding: 40px;
+            max-width: 600px;
+        }
+
+        /* Flash-style title */
+        h1 {
+            font-family: 'Bangers', cursive;
+            font-size: 4rem;
+            color: #2d2d2d;
+            text-shadow: 4px 4px 0 #ff6b6b, 8px 8px 0 #ffa94d;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            transform: rotate(-2deg);
+        }
+
+        .subtitle {
+            font-family: 'Comic Neue', cursive;
+            font-size: 1.3rem;
+            color: #666;
+            margin-bottom: 40px;
+            font-weight: 700;
+        }
+
+        /* Flash-style buttons */
+        .btn {
+            background: linear-gradient(180deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: #fff;
+            border: 4px solid #2d2d2d;
+            padding: 15px 50px;
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #2d2d2d;
+            transition: all 0.1s ease;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+        }
+
+        .btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 #2d2d2d;
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #2d2d2d;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(180deg, #ffa94d 0%, #ff922b 100%);
+        }
+
+        /* How to play */
+        .how-to-play {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 3px solid #2d2d2d;
+            border-radius: 12px;
+            box-shadow: 3px 3px 0 #2d2d2d;
+        }
+
+        .how-to-play h3 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            color: #2d2d2d;
+            margin-bottom: 15px;
+        }
+
+        .instructions {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .instruction {
+            font-size: 0.95rem;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .key {
+            background: #2d2d2d;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: 'Bangers', cursive;
+            font-size: 0.9rem;
+        }
+
+        /* Reward screen */
+        .reward-cards {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .reward-card {
+            width: 180px;
+            padding: 20px;
+            background: #fff;
+            border: 4px solid #2d2d2d;
+            border-radius: 16px;
+            box-shadow: 4px 4px 0 #2d2d2d;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            pointer-events: auto;
+        }
+
+        .reward-card:hover {
+            transform: translateY(-8px) rotate(-2deg);
+            box-shadow: 6px 10px 0 #2d2d2d;
+        }
+
+        .reward-card.common { border-color: #888; }
+        .reward-card.rare { border-color: #339af0; box-shadow: 4px 4px 0 #339af0; }
+        .reward-card.epic { border-color: #cc5de8; box-shadow: 4px 4px 0 #cc5de8; }
+        .reward-card.legendary { border-color: #ffd43b; box-shadow: 4px 4px 0 #ffd43b; }
+        .reward-card.cursed { border-color: #ff6b6b; box-shadow: 4px 4px 0 #ff6b6b; background: #fff0f0; }
+
+        .reward-card-name {
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            color: #2d2d2d;
+            margin-bottom: 8px;
+        }
+
+        .reward-card-desc {
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .reward-card-rarity {
+            font-family: 'Bangers', cursive;
+            font-size: 0.75rem;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .reward-card.common .reward-card-rarity { color: #888; }
+        .reward-card.rare .reward-card-rarity { color: #339af0; }
+        .reward-card.epic .reward-card-rarity { color: #cc5de8; }
+        .reward-card.legendary .reward-card-rarity { color: #ffd43b; }
+        .reward-card.cursed .reward-card-rarity { color: #ff6b6b; }
+
+        /* Pause Screen */
+        .pause-title {
+            font-family: 'Bangers', cursive;
+            font-size: 3.5rem;
+            color: #2d2d2d;
+            text-shadow: 3px 3px 0 #ffd93d;
+            margin-bottom: 10px;
+        }
+
+        .pause-info {
+            font-family: 'Comic Neue', cursive;
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: #2d2d2d;
+            border: 3px solid #2d2d2d;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+
+        /* Game Over */
+        .game-over-title {
+            font-family: 'Bangers', cursive;
+            font-size: 3.5rem;
+            color: #2d2d2d;
+            text-shadow: 3px 3px 0 #ff6b6b;
+            margin-bottom: 10px;
+        }
+
+        .final-score {
+            font-family: 'Bangers', cursive;
+            font-size: 4rem;
+            color: #ff6b6b;
+            text-shadow: 3px 3px 0 #2d2d2d;
+            margin: 20px 0;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            background: #fff;
+            border: 3px solid #2d2d2d;
+            border-radius: 12px;
+            padding: 15px 25px;
+            box-shadow: 3px 3px 0 #2d2d2d;
+        }
+
+        .stat-value {
+            font-family: 'Bangers', cursive;
+            font-size: 2rem;
+            color: #2d2d2d;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Items display */
+        .items-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+            max-width: 200px;
+        }
+
+        .item-icon {
+            width: 32px;
+            height: 32px;
+            background: #fff;
+            border: 2px solid #2d2d2d;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 2px 2px 0 #2d2d2d;
+        }
+
+        /* Mobile joystick */
+        .joystick-zone {
+            position: absolute;
+            bottom: 20px;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(45, 45, 45, 0.2);
+            border: 3px solid rgba(45, 45, 45, 0.3);
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        .joystick-zone.left { left: 30px; }
+        .joystick-zone.right { right: 30px; }
+
+        .joystick-thumb {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(45, 45, 45, 0.5);
+            border: 3px solid #2d2d2d;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .desktop-only { display: block; }
+        .mobile-only { display: none; }
+
+        @media (pointer: coarse) {
+            .desktop-only { display: none; }
+            .mobile-only { display: flex; }
+            
+            h1 { font-size: 2.8rem; }
+            .content { padding: 20px; }
+            .btn { padding: 12px 35px; font-size: 1.2rem; }
+            .instructions { flex-direction: column; gap: 10px; }
+            
+            #hud { padding: 120px 15px 10px 15px; } /* Offset for mobile safe area */
+            .hud-box { padding: 8px 12px; }
+            .hud-value { font-size: 1.5rem; }
+            .hp-bar-container { width: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- HUD -->
+        <div id="hud" style="display: none;">
+            <div class="hud-section">
+                <div class="hud-box">
+                    <div class="hud-label">PLANET</div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar" id="hpBar" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="hud-box round-display">
+                    <div class="hud-label">ROUND</div>
+                    <div class="hud-value" id="roundDisplay">1</div>
+                </div>
+            </div>
+            <div class="hud-section" style="align-items: flex-end;">
+                <div class="hud-box">
+                    <div class="hud-label">COMBO</div>
+                    <div class="hud-value" id="scoreDisplay">0</div>
+                </div>
+                <div class="items-display" id="itemsDisplay"></div>
+            </div>
+        </div>
+
+        <!-- Mobile Joysticks -->
+        <div class="joystick-zone left mobile-only" id="moveJoystick">
+            <div class="joystick-thumb" id="moveThumb"></div>
+        </div>
+        <div class="joystick-zone right mobile-only" id="aimJoystick">
+            <div class="joystick-thumb" id="aimThumb"></div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="startScreen" class="overlay">
+            <div class="content">
+                <h1>PAPER PLANET</h1>
+                <p class="subtitle">Defend your doodly planet from waves of scribble monsters!</p>
+                <button class="btn" id="startButton">PLAY!</button>
+                <div class="how-to-play desktop-only">
+                    <h3>HOW TO PLAY</h3>
+                    <div class="instructions">
+                        <div class="instruction"><span class="key">A / D</span> Orbit around planet</div>
+                        <div class="instruction"><span class="key">SPACE</span> Flip to other side</div>
+                        <div class="instruction"><span class="key">L-CLICK</span> Aim & Shoot</div>
+                        <div class="instruction"><span class="key">R-CLICK</span> Block meteors</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reward Screen (now rendered on canvas, this is just for state) -->
+        <div id="rewardScreen" class="overlay hidden" style="background: transparent; pointer-events: none;">
+        </div>
+
+        <!-- Pause Screen -->
+        <div id="pauseScreen" class="overlay hidden">
+            <div class="content">
+                <h2 class="pause-title">PAUSED</h2>
+                <div class="pause-info">Press ESC to resume</div>
+                <button class="btn" id="resumeButton">RESUME</button>
+                <button class="btn btn-secondary" id="quitButton">QUIT TO MENU</button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="overlay hidden">
+            <div class="content">
+                <h2 class="game-over-title">GAME OVER</h2>
+                <div class="final-score" id="finalScore">0</div>
+                <div class="stats-row">
+                    <div class="stat-item">
+                        <div class="stat-value" id="roundsCleared">0</div>
+                        <div class="stat-label">Rounds</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="enemiesKilled">0</div>
+                        <div class="stat-label">Enemies</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="itemsCollected">0</div>
+                        <div class="stat-label">Items</div>
+                    </div>
+                </div>
+                <button class="btn" id="restartButton">PLAY AGAIN</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+{
+  "statusEffects": [
+    {
+      "id": "burn",
+      "name": "Burn",
+      "description": "Deals damage over time",
+      "type": "dot",
+      "damagePerSecond": 5,
+      "duration": 3.0,
+      "maxStacks": 5,
+      "stackBehavior": "refresh_and_add",
+      "visual": {
+        "color": "#ff6b35",
+        "particleType": "fire",
+        "iconShape": "flame"
+      }
+    },
+    {
+      "id": "shock",
+      "name": "Shock",
+      "description": "Briefly stuns and has chance to chain to nearby enemies",
+      "type": "stun",
+      "stunDuration": 0.3,
+      "chainChance": 0.3,
+      "chainRange": 80,
+      "duration": 0.5,
+      "maxStacks": 1,
+      "stackBehavior": "refresh",
+      "visual": {
+        "color": "#00d4ff",
+        "particleType": "lightning",
+        "iconShape": "bolt"
+      }
+    },
+    {
+      "id": "slow",
+      "name": "Slow",
+      "description": "Reduces movement speed",
+      "type": "debuff",
+      "speedMultiplier": 0.5,
+      "duration": 2.0,
+      "maxStacks": 3,
+      "stackBehavior": "refresh_and_add",
+      "stackBonus": {
+        "speedMultiplier": -0.1
+      },
+      "visual": {
+        "color": "#74b9ff",
+        "particleType": "ice",
+        "iconShape": "snowflake"
+      }
+    },
+    {
+      "id": "mark",
+      "name": "Mark",
+      "description": "Marked enemies take increased damage",
+      "type": "debuff",
+      "damageMultiplier": 1.5,
+      "duration": 5.0,
+      "maxStacks": 1,
+      "stackBehavior": "refresh",
+      "visual": {
+        "color": "#e056fd",
+        "particleType": "glow",
+        "iconShape": "crosshair"
+      }
+    },
+    {
+      "id": "poison",
+      "name": "Poison",
+      "description": "Stacking damage over time",
+      "type": "dot",
+      "damagePerSecond": 3,
+      "damagePerStack": 2,
+      "duration": 4.0,
+      "maxStacks": 10,
+      "stackBehavior": "add_duration",
+      "visual": {
+        "color": "#2ecc71",
+        "particleType": "bubble",
+        "iconShape": "skull"
+      }
+    },
+    {
+      "id": "bleed",
+      "name": "Bleed",
+      "description": "Damage increases with movement",
+      "type": "dot_conditional",
+      "baseDamagePerSecond": 2,
+      "movementDamageMultiplier": 3.0,
+      "duration": 3.0,
+      "maxStacks": 5,
+      "stackBehavior": "add_stacks",
+      "visual": {
+        "color": "#e74c3c",
+        "particleType": "drip",
+        "iconShape": "drop"
+      }
+    }
+  ]
+}

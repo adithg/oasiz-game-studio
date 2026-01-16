@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, minimal-ui">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Dual Block Dodge</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --neon-cyan: #00f5ff;
+            --neon-pink: #ff00ff;
+            --neon-purple: #8b5cf6;
+            --danger-red: #ff3366;
+            --danger-orange: #ff6b35;
+            --bg-dark: #0a0a1a;
+            --bg-darker: #050510;
+            --grid-color: rgba(0, 245, 255, 0.08);
+        }
+
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-darker);
+            font-family: 'Orbitron', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 500px;
+            max-height: 880px;
+            background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
+            overflow: hidden;
+            border-radius: 24px;
+            border: 3px solid var(--neon-cyan);
+            box-shadow: 
+                0 0 20px rgba(0, 245, 255, 0.3),
+                0 0 40px rgba(0, 245, 255, 0.1),
+                inset 0 0 60px rgba(0, 245, 255, 0.05);
+        }
+
+        @media (pointer: coarse) {
+            #game-container {
+                max-width: none;
+                max-height: none;
+                border: none;
+                border-radius: 0;
+                box-shadow: none;
+            }
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Overlays */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+            pointer-events: none;
+            background: rgba(5, 5, 16, 0.85);
+            backdrop-filter: blur(8px);
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .overlay:not(.hidden) {
+            pointer-events: auto;
+        }
+
+        .content {
+            text-align: center;
+            padding: 40px;
+            max-width: 90%;
+        }
+
+        /* Title */
+        .game-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            text-shadow: 
+                0 0 10px var(--neon-cyan),
+                0 0 20px var(--neon-cyan),
+                0 0 40px rgba(0, 245, 255, 0.5);
+        }
+
+        .subtitle {
+            font-size: 0.75rem;
+            color: rgba(0, 245, 255, 0.5);
+            margin-bottom: 40px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+        }
+
+        /* Block Preview Animation */
+        .block-preview {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 40px 0;
+            animation: blocksFloat 2s ease-in-out infinite;
+        }
+
+        .preview-block {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            box-shadow: 
+                0 0 15px currentColor,
+                0 0 30px currentColor,
+                inset 0 0 10px rgba(255,255,255,0.3);
+        }
+
+        .preview-block.left {
+            background: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        .preview-block.right {
+            background: var(--neon-pink);
+            color: var(--neon-pink);
+        }
+
+        @keyframes blocksFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        /* Instructions */
+        .instructions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 30px 0;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .instruction-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .instruction-icon {
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+        }
+
+        /* Buttons */
+        .btn {
+            background: transparent;
+            color: var(--neon-cyan);
+            border: 2px solid var(--neon-cyan);
+            padding: 16px 50px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 0 10px rgba(0, 245, 255, 0.3),
+                inset 0 0 20px rgba(0, 245, 255, 0.1);
+        }
+
+        .btn:hover {
+            background: rgba(0, 245, 255, 0.1);
+            box-shadow: 
+                0 0 20px rgba(0, 245, 255, 0.5),
+                inset 0 0 30px rgba(0, 245, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .start-btn {
+            margin-top: 30px;
+            animation: btnPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes btnPulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(0, 245, 255, 0.3), inset 0 0 20px rgba(0, 245, 255, 0.1); }
+            50% { box-shadow: 0 0 25px rgba(0, 245, 255, 0.6), inset 0 0 30px rgba(0, 245, 255, 0.2); }
+        }
+
+        /* Settings Button */
+        .settings-btn {
+            position: absolute;
+            top: 45px;
+            right: 16px;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: rgba(0, 245, 255, 0.1);
+            border: 2px solid rgba(0, 245, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 15;
+        }
+
+        .settings-btn:hover {
+            background: rgba(0, 245, 255, 0.2);
+            transform: rotate(30deg);
+        }
+
+        .settings-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: var(--neon-cyan);
+            opacity: 0.7;
+        }
+
+        /* Pause Button */
+        .pause-btn {
+            position: absolute;
+            top: 45px;
+            left: 16px;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: rgba(0, 245, 255, 0.1);
+            border: 2px solid rgba(0, 245, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 15;
+        }
+
+        .pause-btn:hover {
+            background: rgba(0, 245, 255, 0.2);
+        }
+
+        .pause-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: var(--neon-cyan);
+            opacity: 0.7;
+        }
+
+        /* Game Over Screen */
+        .game-over-title {
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--danger-red);
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            text-shadow: 
+                0 0 10px var(--danger-red),
+                0 0 20px var(--danger-red);
+            animation: glitch 0.3s ease-in-out;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px); }
+            40% { transform: translateX(5px); }
+            60% { transform: translateX(-3px); }
+            80% { transform: translateX(3px); }
+        }
+
+        .final-score-container {
+            margin: 30px 0;
+        }
+
+        .final-score-label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+        }
+
+        .final-score {
+            font-size: 5rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 
+                0 0 10px var(--neon-cyan),
+                0 0 30px var(--neon-cyan);
+        }
+
+        .checkpoint-count {
+            font-size: 1rem;
+            color: var(--neon-purple);
+            margin-top: 10px;
+            text-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        .game-over-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .btn-secondary {
+            border-color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.6);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            border-color: rgba(255, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: none;
+        }
+
+        /* Settings Modal */
+        .settings-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-dark);
+            border-radius: 16px;
+            border: 2px solid var(--neon-cyan);
+            padding: 30px 40px;
+            z-index: 100;
+            box-shadow: 
+                0 0 30px rgba(0, 245, 255, 0.3),
+                inset 0 0 30px rgba(0, 245, 255, 0.05);
+            min-width: 280px;
+        }
+
+        .settings-modal.hidden {
+            display: none;
+        }
+
+        .settings-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            margin-bottom: 24px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0, 245, 255, 0.1);
+        }
+
+        .settings-row:last-of-type {
+            border-bottom: none;
+        }
+
+        .settings-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .toggle {
+            width: 50px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .toggle.active {
+            background: rgba(0, 245, 255, 0.3);
+            border-color: var(--neon-cyan);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle.active::after {
+            transform: translateX(22px);
+            background: var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .settings-close {
+            margin-top: 24px;
+            width: 100%;
+        }
+
+        /* Pause Menu */
+        .pause-menu {
+            background: rgba(5, 5, 16, 0.95);
+        }
+
+        .pause-menu .content {
+            background: var(--bg-dark);
+            border-radius: 16px;
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 30px rgba(0, 245, 255, 0.3);
+        }
+
+        .pause-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+
+        .pause-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pause-buttons .btn {
+            width: 100%;
+        }
+
+        /* Mobile adjustments */
+        @media (pointer: coarse) {
+            .game-title {
+                font-size: 1.6rem;
+            }
+            .content {
+                padding: 28px;
+            }
+            .btn {
+                padding: 14px 40px;
+                font-size: 0.9rem;
+            }
+            .settings-btn, .pause-btn {
+                top: max(105px, calc(env(safe-area-inset-top) + 55px));
+            }
+            .settings-btn {
+                right: max(16px, env(safe-area-inset-right, 16px));
+            }
+            .pause-btn {
+                left: max(16px, env(safe-area-inset-left, 16px));
+            }
+        }
+
+        @media (max-height: 600px) {
+            .content {
+                padding: 20px;
+            }
+            .game-title {
+                font-size: 1.4rem;
+            }
+            .block-preview {
+                margin: 20px 0;
+            }
+            .instructions {
+                margin: 15px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Settings Button -->
+        <button class="settings-btn" id="settingsBtn">
+            <svg viewBox="0 0 24 24">
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+            </svg>
+        </button>
+
+        <!-- Pause Button -->
+        <button class="pause-btn hidden" id="pauseBtn">
+            <svg viewBox="0 0 24 24">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
+        </button>
+
+        <!-- Start Screen -->
+        <div id="startScreen" class="overlay">
+            <div class="content">
+                <h1 class="game-title">Dual Block</h1>
+                <p class="subtitle">Dodge</p>
+                
+                <div class="block-preview">
+                    <div class="preview-block left"></div>
+                    <div class="preview-block right"></div>
+                </div>
+
+                <div class="instructions">
+                    <div class="instruction-row">
+                        <span class="instruction-icon">L</span>
+                        <span>Both blocks move left</span>
+                    </div>
+                    <div class="instruction-row">
+                        <span class="instruction-icon">R</span>
+                        <span>Both blocks move right</span>
+                    </div>
+                    <div class="instruction-row">
+                        <span class="instruction-icon">L+R</span>
+                        <span>Blocks split apart</span>
+                    </div>
+                </div>
+
+                <button class="btn start-btn" id="startButton">Start</button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="overlay hidden">
+            <div class="content">
+                <h2 class="game-over-title">Game Over</h2>
+                <div class="final-score-container">
+                    <div class="final-score-label">Distance</div>
+                    <div class="final-score" id="finalScore">0</div>
+                    <div class="checkpoint-count" id="checkpointCount">0 Checkpoints</div>
+                </div>
+                <div class="game-over-buttons">
+                    <button class="btn" id="restartButton">Retry</button>
+                    <button class="btn btn-secondary" id="backToStartButton">Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pause Menu -->
+        <div id="pauseScreen" class="overlay pause-menu hidden">
+            <div class="content">
+                <h2 class="pause-title">Paused</h2>
+                <div class="pause-buttons">
+                    <button class="btn" id="resumeButton">Resume</button>
+                    <button class="btn btn-secondary" id="pauseRestartButton">Restart</button>
+                    <button class="btn btn-secondary" id="pauseMenuButton">Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="settings-modal hidden">
+            <h3 class="settings-title">Settings</h3>
+            <div class="settings-row">
+                <span class="settings-label">Music</span>
+                <div class="toggle active" id="musicToggle"></div>
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">Sound FX</span>
+                <div class="toggle active" id="fxToggle"></div>
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">Haptics</span>
+                <div class="toggle active" id="hapticToggle"></div>
+            </div>
+            <button class="btn settings-close" id="settingsClose">Done</button>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

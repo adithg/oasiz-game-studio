@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, minimal-ui">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Saw Dodge</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --console-color: #6a4a8f;
+            --console-color-dark: #5a3a7a;
+            --console-color-light: #7a5a9f;
+            --console-btn-color: #f0e6f5;
+            --console-btn-dark: #d4c6df;
+            --screen-border: #2a2a2a;
+            --screen-bg: #f0e6f5;
+            --danger-red: #c84040;
+            --pixel-black: #1a1a1a;
+        }
+
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            font-family: 'Press Start 2P', monospace;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.5s ease;
+        }
+
+        @media (pointer: coarse) {
+            html, body {
+                background: var(--console-color);
+            }
+        }
+
+        /* Checkered background pattern on the console - inside container */
+        #game-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(45deg, var(--console-color-dark) 25%, transparent 25%),
+                linear-gradient(-45deg, var(--console-color-dark) 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, var(--console-color-dark) 75%),
+                linear-gradient(-45deg, transparent 75%, var(--console-color-dark) 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            pointer-events: none;
+            z-index: 0;
+            border-radius: 24px;
+            transition: background-image 0.5s ease;
+        }
+
+        @media (pointer: coarse) {
+            #game-container::before {
+                border-radius: 0;
+            }
+        }
+
+        /* Desktop background pattern */
+        @media (pointer: fine) {
+            body::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: 
+                    radial-gradient(circle at 50% 50%, #2a2a4e 0%, #1a1a2e 70%);
+                pointer-events: none;
+                z-index: -1;
+            }
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 420px;
+            max-height: 850px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            z-index: 1;
+            margin: auto;
+            border-radius: 24px;
+            background: var(--console-color);
+            box-shadow: 
+                0 0 0 4px var(--console-color-dark),
+                0 0 0 8px rgba(0,0,0,0.2),
+                0 8px 30px rgba(0,0,0,0.4);
+            transition: background 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        @media (pointer: coarse) {
+            #game-container {
+                max-width: none;
+                max-height: none;
+                border-radius: 0;
+                box-shadow: none;
+            }
+        }
+
+        /* Game screen area - enhanced with more depth */
+        #screen-container {
+            position: relative;
+            width: 100%;
+            max-width: 360px;
+            flex: 1;
+            max-height: 55%;
+            background: #0a0a0a;
+            border: 8px solid var(--screen-border);
+            border-radius: 12px;
+            box-shadow: 
+                inset 0 0 0 3px #1a1a1a,
+                inset 0 0 20px rgba(0,0,0,0.8),
+                0 6px 0 0 #3a3a3a,
+                0 10px 0 0 #2a2a2a,
+                0 14px 20px rgba(0,0,0,0.3);
+            overflow: hidden;
+            margin-top: 20px;
+            z-index: 2;
+            transition: border-color 0.5s ease;
+        }
+
+        @media (pointer: coarse) {
+            #screen-container {
+                margin-top: 100px;
+                max-height: 50%;
+                max-width: 400px;
+            }
+        }
+
+        /* Screen bezel shine effect */
+        #screen-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* HUD below screen */
+        #hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 360px;
+            padding: 12px 10px;
+            margin-top: 4px;
+            z-index: 2;
+        }
+
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #000000;
+            padding: 12px 18px;
+            border-radius: 12px;
+            border: 4px solid #ffffff;
+            box-shadow: 
+                0 6px 0 rgba(0,0,0,0.4),
+                inset 0 0 10px rgba(255,255,255,0.1);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.2s;
+            min-width: 110px;
+        }
+
+        .hud-label {
+            font-size: 10px;
+            color: #ffffff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: bold;
+            opacity: 0.9;
+        }
+
+        .hud-value {
+            font-size: 24px;
+            color: #ffffff;
+            text-shadow: 
+                0 0 8px rgba(255,255,255,0.3);
+            letter-spacing: 3px;
+        }
+
+        .hud-item.pop {
+            transform: scale(1.1);
+            border-color: #ffff00;
+            box-shadow: 
+                0 0 10px rgba(255,255,0,0.3),
+                0 6px 0 rgba(0,0,0,0.4);
+        }
+
+        @media (pointer: coarse) {
+            #hud {
+                max-width: 400px;
+            }
+            .hud-item {
+                min-width: 130px;
+                padding: 14px 22px;
+            }
+            .hud-value {
+                font-size: 28px;
+            }
+            .hud-label {
+                font-size: 11px;
+            }
+        }
+
+        /* Progress bar - high performance look */
+        #progress-container {
+            width: 100%;
+            max-width: 360px;
+            height: 24px;
+            background: #111111;
+            border: 4px solid var(--pixel-black);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 
+                0 4px 0 rgba(0,0,0,0.3),
+                inset 0 2px 10px rgba(0,0,0,0.9);
+            z-index: 2;
+            margin-top: 12px;
+            position: relative;
+        }
+
+        @media (pointer: coarse) {
+            #progress-container {
+                max-width: 400px;
+                height: 28px;
+            }
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, 
+                #00ff00 0%, 
+                #ffff00 50%, 
+                #ff0000 100%);
+            transition: width 0.3s ease;
+            box-shadow: 
+                inset 0 6px 6px rgba(255,255,255,0.5),
+                inset 0 -6px 6px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        /* Progress bar sheen */
+        #progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: rgba(255,255,255,0.2);
+            pointer-events: none;
+        }
+
+        /* Control buttons area */
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 380px;
+            padding: 12px 8px;
+            margin-top: 6px;
+            z-index: 2;
+        }
+
+        @media (pointer: coarse) {
+            #controls {
+                max-width: 420px;
+                padding: 16px 8px;
+                margin-top: -10px;
+            }
+        }
+
+        /* D-Pad style buttons - enhanced with more depth */
+        #dpad {
+            display: flex;
+            gap: 10px;
+        }
+
+        .arrow-btn {
+            width: 58px;
+            height: 58px;
+            background: linear-gradient(180deg, #ffffff 0%, var(--console-btn-color) 40%, var(--console-btn-dark) 100%);
+            border: 5px solid var(--pixel-black);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 
+                0 5px 0 0 #404040,
+                0 7px 0 0 #2a2a2a,
+                0 10px 8px rgba(0,0,0,0.2),
+                inset 0 2px 0 rgba(255,255,255,0.8),
+                inset 0 -4px 0 rgba(0,0,0,0.1);
+            transition: transform 0.05s, box-shadow 0.05s, background 0.5s ease;
+            touch-action: manipulation;
+        }
+
+        .arrow-btn:active, .arrow-btn.pressed {
+            transform: translateY(5px);
+            box-shadow: 
+                0 0 0 0 #404040,
+                0 2px 0 0 #2a2a2a,
+                0 4px 4px rgba(0,0,0,0.1),
+                inset 0 3px 6px rgba(0,0,0,0.2);
+        }
+
+        .arrow-btn svg {
+            width: 26px;
+            height: 26px;
+            fill: var(--pixel-black);
+            filter: drop-shadow(1px 1px 0 rgba(255,255,255,0.5));
+        }
+
+        @media (pointer: coarse) {
+            .arrow-btn {
+                width: 68px;
+                height: 68px;
+            }
+            .arrow-btn svg {
+                width: 30px;
+                height: 30px;
+            }
+        }
+
+        /* Jump button - larger and more prominent */
+        #jump-btn {
+            width: 74px;
+            height: 74px;
+            background: linear-gradient(180deg, #ffffff 0%, var(--console-btn-color) 40%, var(--console-btn-dark) 100%);
+            border: 5px solid var(--pixel-black);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 
+                0 6px 0 0 #404040,
+                0 8px 0 0 #2a2a2a,
+                0 12px 10px rgba(0,0,0,0.25),
+                inset 0 3px 0 rgba(255,255,255,0.8),
+                inset 0 -5px 0 rgba(0,0,0,0.1);
+            transition: transform 0.05s, box-shadow 0.05s, background 0.5s ease;
+            touch-action: manipulation;
+        }
+
+        #jump-btn:active, #jump-btn.pressed {
+            transform: translateY(6px);
+            box-shadow: 
+                0 0 0 0 #404040,
+                0 2px 0 0 #2a2a2a,
+                0 4px 4px rgba(0,0,0,0.1),
+                inset 0 4px 8px rgba(0,0,0,0.25);
+        }
+
+        #jump-btn::after {
+            content: '';
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(180deg, var(--console-color-light) 0%, var(--console-color) 50%, var(--console-color-dark) 100%);
+            border: 4px solid var(--pixel-black);
+            border-radius: 50%;
+            box-shadow: 
+                inset 0 2px 0 rgba(255,255,255,0.3),
+                inset 0 -2px 0 rgba(0,0,0,0.2);
+            transition: background 0.5s ease;
+        }
+
+        @media (pointer: coarse) {
+            #jump-btn {
+                width: 88px;
+                height: 88px;
+                border-width: 6px;
+            }
+            #jump-btn::after {
+                width: 48px;
+                height: 48px;
+            }
+        }
+
+        /* Pause button - refined */
+        #pauseBtn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(180deg, #ffffff 0%, var(--screen-bg) 100%);
+            border: 4px solid var(--pixel-black);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 
+                0 4px 0 0 #404040,
+                0 6px 0 0 #2a2a2a;
+            z-index: 20;
+            transition: transform 0.05s, box-shadow 0.05s;
+        }
+
+        #pauseBtn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 0 #404040, 0 2px 0 0 #2a2a2a;
+        }
+
+        #pauseBtn svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--pixel-black);
+        }
+
+        @media (pointer: coarse) {
+            #pauseBtn {
+                top: 115px;
+                width: 42px;
+                height: 42px;
+            }
+            #pauseBtn svg {
+                width: 18px;
+                height: 18px;
+            }
+        }
+
+        /* Overlays - enhanced with animation */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            pointer-events: none;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .overlay:not(.hidden) {
+            pointer-events: auto;
+        }
+
+        .overlay-content {
+            text-align: center;
+            padding: 35px 30px;
+            background: linear-gradient(180deg, #ffffff 0%, var(--console-btn-color) 100%);
+            border: 8px solid var(--pixel-black);
+            border-radius: 16px;
+            box-shadow: 
+                0 10px 0 0 #404040,
+                0 15px 0 0 #2a2a2a,
+                0 20px 30px rgba(0,0,0,0.4);
+            max-width: 92%;
+            width: 340px;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: background 0.5s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Start Screen - Solid white background, no Game Boy visible */
+        #startScreen {
+            background: #ffffff !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        #startScreen.hidden {
+            display: none !important;
+        }
+
+        /* Falling saws container */
+        .falling-saws {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .falling-saw {
+            position: absolute;
+            top: -100px;
+            animation: sawFall linear infinite;
+        }
+
+        @keyframes sawFall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+            100% {
+                transform: translateY(var(--fall-distance, 800px)) rotate(720deg);
+            }
+        }
+
+        @keyframes sawSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Start Screen Specifics */
+        .title-container {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .game-title {
+            font-size: 1.8rem;
+            color: var(--pixel-black);
+            margin-bottom: 4px;
+            line-height: 1.2;
+            text-shadow: 3px 3px 0 rgba(0,0,0,0.1);
+            letter-spacing: -1px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(-1deg); }
+            50% { transform: translateY(-10px) rotate(1deg); }
+        }
+
+        .game-subtitle {
+            font-size: 0.7rem;
+            color: var(--danger-red);
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .title-saw {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            opacity: 0.15;
+            z-index: -1;
+            animation: sawSpin 4s linear infinite;
+        }
+
+        .saw-l { top: -20px; left: -30px; }
+        .saw-r { bottom: -10px; right: -30px; }
+
+        .instruction-box {
+            background: rgba(0,0,0,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px dashed rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+        }
+
+        .instructions {
+            font-size: 0.5rem;
+            color: var(--pixel-black);
+            line-height: 1.8;
+            margin-bottom: 0;
+            opacity: 0.8;
+            text-align: left;
+        }
+
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .instruction-item:last-child { margin-bottom: 0; }
+
+        .instruction-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--console-color);
+            border-radius: 2px;
+        }
+
+        #startButton {
+            width: 100%;
+            padding: 18px;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); box-shadow: 0 0 15px rgba(90, 143, 74, 0.4); }
+            100% { transform: scale(1); }
+        }
+
+        .btn {
+            background: linear-gradient(180deg, var(--console-color-light) 0%, var(--console-color) 50%, var(--console-color-dark) 100%);
+            color: #ffffff;
+            border: 5px solid var(--pixel-black);
+            padding: 14px 24px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.65rem;
+            cursor: pointer;
+            border-radius: 6px;
+            box-shadow: 
+                0 5px 0 0 #3a5a2a,
+                0 7px 0 0 #2a4a1a,
+                inset 0 2px 0 rgba(255,255,255,0.2);
+            transition: transform 0.05s, box-shadow 0.05s, background 0.5s ease;
+            margin: 5px;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(5px);
+            box-shadow: 
+                0 0 0 0 #3a5a2a,
+                0 2px 0 0 #2a4a1a,
+                inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(180deg, #f0e8e0 0%, var(--console-btn-dark) 50%, #c8c0b8 100%);
+            color: var(--pixel-black);
+            box-shadow: 
+                0 5px 0 0 #a8a098,
+                0 7px 0 0 #888078,
+                inset 0 2px 0 rgba(255,255,255,0.4);
+            text-shadow: none;
+            transition: background 0.5s ease;
+        }
+
+        .btn-secondary:active {
+            box-shadow: 
+                0 0 0 0 #a8a098,
+                0 2px 0 0 #888078,
+                inset 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        /* Score display - enhanced */
+        .final-score {
+            font-size: 2.2rem;
+            color: var(--pixel-black);
+            margin: 12px 0;
+            text-shadow: 3px 3px 0 rgba(0,0,0,0.1);
+        }
+
+        .score-label {
+            font-size: 0.45rem;
+            color: var(--pixel-black);
+            opacity: 0.5;
+            margin-bottom: 4px;
+        }
+
+        .coins-collected {
+            font-size: 0.55rem;
+            color: #b8860b;
+            margin-bottom: 16px;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.1);
+        }
+
+        /* Settings Modal - refined */
+        .settings-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(180deg, #ffffff 0%, var(--console-btn-color) 100%);
+            border: 8px solid var(--pixel-black);
+            border-radius: 12px;
+            padding: 22px 20px;
+            z-index: 150;
+            box-shadow: 
+                0 8px 0 0 #404040,
+                0 12px 0 0 #2a2a2a,
+                0 16px 30px rgba(0,0,0,0.4);
+            min-width: 240px;
+            transition: background 0.5s ease;
+        }
+
+        .settings-modal.hidden {
+            display: none;
+        }
+
+        .settings-title {
+            font-size: 0.7rem;
+            color: var(--pixel-black);
+            margin-bottom: 18px;
+            text-align: center;
+        }
+
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 3px solid rgba(0,0,0,0.1);
+        }
+
+        .settings-row:last-of-type {
+            border-bottom: none;
+        }
+
+        .settings-label {
+            font-size: 0.45rem;
+            color: var(--pixel-black);
+        }
+
+        .toggle {
+            width: 48px;
+            height: 26px;
+            background: #b0a8a0;
+            border: 4px solid var(--pixel-black);
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            transition: background 0.2s ease;
+        }
+
+        .toggle.active {
+            background: var(--console-color);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: linear-gradient(180deg, #ffffff 0%, #e0e0e0 100%);
+            border: 3px solid var(--pixel-black);
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+        }
+
+        .toggle.active::after {
+            transform: translateX(22px);
+        }
+
+        /* Decorative screws on console frame */
+        .screw {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: linear-gradient(135deg, #909090 0%, #707070 50%, #505050 100%);
+            border-radius: 50%;
+            border: 2px solid #404040;
+            z-index: 3;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+
+        .screw::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            width: 8px;
+            height: 2px;
+            background: #404040;
+        }
+
+        .screw-tl { top: 10px; left: 10px; }
+        .screw-tr { top: 10px; right: 10px; }
+        .screw-bl { bottom: 10px; left: 10px; }
+        .screw-br { bottom: 10px; right: 10px; }
+
+        @media (pointer: coarse) {
+            .screw-tl { top: 80px; }
+            .screw-tr { top: 80px; }
+        }
+
+        /* Hide controls slightly on desktop */
+        @media (pointer: fine) {
+            #controls {
+                opacity: 0.4;
+                transition: opacity 0.3s ease;
+            }
+            #controls:hover {
+                opacity: 1;
+            }
+        }
+
+        /* Mobile adjustments */
+        @media (max-height: 680px) {
+            #screen-container {
+                max-height: 42%;
+            }
+            .arrow-btn {
+                width: 58px;
+                height: 58px;
+            }
+            #jump-btn {
+                width: 72px;
+                height: 72px;
+            }
+            #jump-btn::after {
+                width: 40px;
+                height: 40px;
+            }
+            .overlay-content {
+                padding: 20px 18px;
+            }
+            .game-title {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Decorative screws -->
+        <div class="screw screw-tl"></div>
+        <div class="screw screw-tr"></div>
+        <div class="screw screw-bl"></div>
+        <div class="screw screw-br"></div>
+        <!-- Pause Button -->
+        <button id="pauseBtn" class="hidden">
+            <svg viewBox="0 0 24 24">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
+        </button>
+
+        <!-- Game Screen -->
+        <div id="screen-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <!-- HUD -->
+        <div id="hud">
+            <div class="hud-item" id="score-badge">
+                <span class="hud-label">SCORE</span>
+                <span class="hud-value" id="scoreDisplay">0</span>
+            </div>
+            <div class="hud-item" id="round-badge">
+                <span class="hud-label">ROUND</span>
+                <span class="hud-value" id="roundDisplay">1</span>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls">
+            <div id="dpad">
+                <button class="arrow-btn" id="leftBtn">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                    </svg>
+                </button>
+                <button class="arrow-btn" id="rightBtn">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                    </svg>
+                </button>
+            </div>
+            <button id="jump-btn"></button>
+        </div>
+
+        <!-- Start Screen - Full viewport with falling saws -->
+        <div id="startScreen" class="overlay">
+            <div class="falling-saws" id="fallingSaws"></div>
+            <div class="overlay-content">
+                <div class="title-container">
+                    <svg class="title-saw saw-l" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="8" stroke-dasharray="10 10"/>
+                        <circle cx="50" cy="50" r="10" fill="currentColor"/>
+                    </svg>
+                    <svg class="title-saw saw-r" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="8" stroke-dasharray="10 10"/>
+                        <circle cx="50" cy="50" r="10" fill="currentColor"/>
+                    </svg>
+                    <h1 class="game-title">SAW DODGE</h1>
+                    <p class="game-subtitle">Elite Handheld Edition</p>
+                </div>
+
+                <div class="instruction-box">
+                    <div class="instruction-item">
+                        <div class="instruction-dot"></div>
+                        <span class="instructions">DODGE FALLING SPIKES</span>
+                    </div>
+                    <div class="instruction-item">
+                        <div class="instruction-dot"></div>
+                        <span class="instructions">JUMP FOR POINTS (+1)</span>
+                    </div>
+                    <div class="instruction-item">
+                        <div class="instruction-dot"></div>
+                        <span class="instructions">COLLECT GOLDEN COINS</span>
+                    </div>
+                    <div class="instruction-item">
+                        <div class="instruction-dot"></div>
+                        <span class="instructions">DOUBLE JUMP TO FLIP!</span>
+                    </div>
+                </div>
+
+                <button class="btn" id="startButton">PRESS START</button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="overlay hidden">
+            <div class="overlay-content">
+                <h2 class="game-title">GAME OVER</h2>
+                <p class="score-label">SAWS DODGED</p>
+                <div class="final-score" id="finalScore">0</div>
+                <p class="coins-collected" id="coinsCollected">0 COINS</p>
+                <button class="btn" id="restartButton">RETRY</button>
+                <button class="btn btn-secondary" id="menuButton">MENU</button>
+            </div>
+        </div>
+
+        <!-- Pause Screen -->
+        <div id="pauseScreen" class="overlay hidden">
+            <div class="overlay-content">
+                <h2 class="game-title">PAUSED</h2>
+                <button class="btn" id="resumeButton">RESUME</button>
+                <button class="btn btn-secondary" id="pauseRestartBtn">RESTART</button>
+                <button class="btn btn-secondary" id="pauseMenuBtn">MENU</button>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="settings-modal hidden">
+            <h3 class="settings-title">SETTINGS</h3>
+            <div class="settings-row">
+                <span class="settings-label">MUSIC</span>
+                <div class="toggle active" id="musicToggle"></div>
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">SOUND FX</span>
+                <div class="toggle active" id="fxToggle"></div>
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">HAPTICS</span>
+                <div class="toggle active" id="hapticToggle"></div>
+            </div>
+            <button class="btn" id="settingsClose">DONE</button>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
