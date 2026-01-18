@@ -7,7 +7,7 @@ Welcome to the Oasiz Game Studio! This guide will help you create high-quality g
 **The bar for quality is a game you'd see on the App Store.** If you wouldn't download it, it shouldn't be on our platform.
 
 - Games must be **fun** and **polished**
-- Some games should be **challenging**
+- If games are **challenging**, they should increase in difficulty
 - All games need professional-grade visuals, animations, and game feel
 - Every interaction should feel satisfying (we call this "juice")
 
