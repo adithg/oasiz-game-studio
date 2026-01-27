@@ -60,9 +60,16 @@ export class LevelSelector {
   private baseAnimationDurationPerLevel: number = 350; // ms per level for uniform speed
   private buttonRipples: ButtonRipple[] = [];
   
+  // Layout caching to avoid recalculating every frame
+  private cachedWidth: number = 0;
+  private cachedHeight: number = 0;
+  private cachedIsMobile: boolean = false;
+  private layoutNeedsUpdate: boolean = true;
+  private baseY: number = 0; // Cached base Y for scroll calculations
+  
   // Exposed configuration variables
   public buttonSize: number | null = null; // null = auto-calculate, or set specific size
-  public fontSize: { mobile: number; desktop: number } = { mobile: 14, desktop: 18 };
+  public fontSize: { mobile: number; desktop: number } = { mobile: 18, desktop: 22 };
   public fontSizeLocked: { mobile: number; desktop: number } = { mobile: 10, desktop: 12 };
   public fontSizeLockedNumber: { mobile: number; desktop: number } = { mobile: 8, desktop: 10 };
 
@@ -87,7 +94,7 @@ export class LevelSelector {
     this.onLevelSelected = onLevelSelected;
     this.columns = 1; // Single column for vertical layout
     this.rows = totalLevels;
-    this.buttonSpacing = 48;
+    this.buttonSpacing = 56; // Increased spacing for better touch targets
     this.colors = colors;
     this.colorHex = colorHex;
     this.buttonSize = buttonSize;
@@ -138,85 +145,97 @@ export class LevelSelector {
   }
 
   private calculateLayout(width: number, height: number, isMobile: boolean): void {
-    const titleHeight = isMobile ? 40 : 50; // Space for title
-    const bottomPadding = isMobile ? 140 : 140; // Space for level button and bottom margin
-    const sidePadding = isMobile ? 20 : 30; // Reduced padding for larger circles
+    // Check if we need a full layout recalculation (dimensions changed)
+    const needsFullRecalc = 
+      this.layoutNeedsUpdate ||
+      width !== this.cachedWidth || 
+      height !== this.cachedHeight || 
+      isMobile !== this.cachedIsMobile;
     
-    const availableHeight = height - titleHeight - bottomPadding;
-    const availableWidth = width - sidePadding * 2;
-    
-    // Calculate button size - make it reasonable for vertical layout
-    // Use configured size if set, otherwise auto-calculate
-    let buttonSize: number;
-    if (this.buttonSize !== null) {
-      buttonSize = this.buttonSize;
-    } else {
-      // Allow circles to be much larger, constrained by available width
-      const desiredSize = isMobile ? 40 : 60;
-      buttonSize = Math.min(availableWidth * 0.9, desiredSize);
+    if (needsFullRecalc) {
+      this.cachedWidth = width;
+      this.cachedHeight = height;
+      this.cachedIsMobile = isMobile;
+      this.layoutNeedsUpdate = false;
+      
+      // Safe area offset for top (matches settings button requirements)
+      const safeAreaTop = isMobile ? 120 : 45;
+      const titleHeight = safeAreaTop + (isMobile ? 80 : 100); // Space for safe area + title
+      const bottomPadding = isMobile ? 140 : 140; // Space for level button and bottom margin
+      const sidePadding = isMobile ? 20 : 30;
+      
+      const availableHeight = height - titleHeight - bottomPadding;
+      const availableWidth = width - sidePadding * 2;
+      
+      // Calculate button size - BIGGER for mobile for easier tapping
+      let buttonSize: number;
+      if (this.buttonSize !== null) {
+        buttonSize = this.buttonSize;
+      } else {
+        // Larger buttons on mobile for easier tapping (56px vs 60px desktop)
+        const desiredSize = isMobile ? 56 : 60;
+        buttonSize = Math.min(availableWidth * 0.9, desiredSize);
+      }
+      
+      this.buttonWidth = buttonSize;
+      this.buttonHeight = buttonSize;
+      
+      // Center horizontally
+      const startX = (width - this.buttonWidth) / 2;
+      
+      // Calculate total height of all buttons
+      const totalButtonsHeight = this.totalLevels * this.buttonHeight + (this.totalLevels - 1) * this.buttonSpacing;
+      
+      // Start Y position for buttons (level 1 at bottom of scrollable area)
+      const scrollableAreaBottom = height - bottomPadding;
+      this.baseY = scrollableAreaBottom - this.buttonHeight;
+      
+      // Calculate scroll limits
+      const topMargin = isMobile ? 80 : 50; // Extra margin at top for visibility
+      this.minScrollOffset = 0;
+      this.maxScrollOffset = Math.max(0, totalButtonsHeight - availableHeight + topMargin);
+      
+      // Create or update buttons only on full recalc
+      if (this.buttons.length !== this.totalLevels) {
+        this.buttons = [];
+        for (let i = 0; i < this.totalLevels; i++) {
+          const level = i + 1;
+          const colorIndex = (level - 1) % this.colors.length;
+          const color = this.colors[colorIndex];
+          const isSelected = level === this.selectedButtonLevel;
+          
+          this.buttons.push({
+            level: level,
+            x: startX,
+            y: 0, // Will be updated below
+            width: this.buttonWidth,
+            height: this.buttonHeight,
+            hoverScale: 1,
+            clickScale: isSelected ? 1.2 : 1,
+            clickStartTime: null,
+            locked: level > this.maxUnlockedLevel,
+            color: color,
+            activated: false,
+          });
+        }
+      } else {
+        // Update existing button properties
+        for (let i = 0; i < this.buttons.length; i++) {
+          const button = this.buttons[i];
+          button.x = startX;
+          button.width = this.buttonWidth;
+          button.height = this.buttonHeight;
+          button.locked = button.level > this.maxUnlockedLevel;
+        }
+      }
     }
     
-    this.buttonWidth = buttonSize;
-    this.buttonHeight = buttonSize;
-    
-    // Center horizontally
-    const startX = (width - this.buttonWidth) / 2;
-    
-    // Calculate total height of all buttons
-    const totalButtonsHeight = this.totalLevels * this.buttonHeight + (this.totalLevels - 1) * this.buttonSpacing;
-    
-    // Start Y position for buttons (level 1 at bottom of scrollable area)
-    const scrollableAreaBottom = height - bottomPadding;
-    const baseY = scrollableAreaBottom - this.buttonHeight;
-    
-    // Calculate scroll limits
-    // minScrollOffset = 0: Level 1 stays at bottom (initial state)
-    // maxScrollOffset: Enough scroll to bring level 25 into view at top
-    this.minScrollOffset = 0;
-    this.maxScrollOffset = Math.max(0, totalButtonsHeight - availableHeight);
-    
-    // Clamp scroll offset
+    // Always clamp and update Y positions (cheap operation)
     this.scrollOffset = Math.max(this.minScrollOffset, Math.min(this.maxScrollOffset, this.scrollOffset));
     
-    // Preserve states before recreating buttons
-    const activatedStates = new Map<number, boolean>();
-    const clickScales = new Map<number, number>();
-    const clickStartTimes = new Map<number, number | null>();
-    for (const button of this.buttons) {
-      activatedStates.set(button.level, button.activated);
-      clickScales.set(button.level, button.clickScale);
-      clickStartTimes.set(button.level, button.clickStartTime);
-    }
-    
-    // Create buttons - level 1 at bottom, others going upward
-    this.buttons = [];
-    for (let i = 0; i < this.totalLevels; i++) {
-      const level = i + 1;
-      
-      // Assign color by cycling through available colors
-      const colorIndex = (level - 1) % this.colors.length;
-      const color = this.colors[colorIndex];
-      
-      // Calculate Y position: level 1 at bottom, level 2 above it, etc.
-      // i=0 → level 1 at bottom, i=1 → level 2 above level 1, etc.
-      const y = baseY - i * (this.buttonHeight + this.buttonSpacing) + this.scrollOffset;
-      
-      // Set clickScale to 1.2 if this is the selected button
-      const isSelected = level === this.selectedButtonLevel;
-      
-      this.buttons.push({
-        level: level,
-        x: startX,
-        y: y,
-        width: this.buttonWidth,
-        height: this.buttonHeight,
-        hoverScale: 1,
-        clickScale: isSelected ? 1.2 : (clickScales.get(level) ?? 1),
-        clickStartTime: null, // No animation needed
-        locked: level > this.maxUnlockedLevel, // Lock levels beyond maxUnlockedLevel
-        color: color,
-        activated: activatedStates.get(level) || false, // Preserve activated state
-      });
+    // Update button Y positions based on scroll
+    for (let i = 0; i < this.buttons.length; i++) {
+      this.buttons[i].y = this.baseY - i * (this.buttonHeight + this.buttonSpacing) + this.scrollOffset;
     }
   }
 
@@ -245,11 +264,13 @@ export class LevelSelector {
   }
 
   handleButtonClick(x: number, y: number): boolean {
-    // Check if any button was clicked (circular hit detection)
+    // Check if any button was clicked (circular hit detection with extra padding for easier tapping)
+    const hitPadding = 12; // Extra pixels around button for easier tapping
+    
     for (const button of this.buttons) {
       const centerX = button.x + button.width / 2;
       const centerY = button.y + button.height / 2;
-      const radius = button.width / 2;
+      const radius = button.width / 2 + hitPadding;
       const distance = Math.sqrt(
         Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
       );
@@ -278,6 +299,10 @@ export class LevelSelector {
   }
 
   updateHover(x: number, y: number): void {
+    // Skip hover effects on mobile - not needed and adds overhead
+    const isMobile = window.matchMedia("(pointer: coarse)").matches;
+    if (isMobile) return;
+    
     this.hoveredButton = null;
     
     for (let i = 0; i < this.buttons.length; i++) {
@@ -305,6 +330,9 @@ export class LevelSelector {
     height: number
   ): void {
     const isMobile = window.matchMedia("(pointer: coarse)").matches;
+    
+    // Safe area offset for top (matches settings button requirements)
+    const safeAreaTop = isMobile ? 120 : 45;
     
     // Ensure the latest unlocked level is selected (enlarged) if no button is currently selected
     if (this.selectedButtonLevel === null) {
@@ -356,7 +384,7 @@ export class LevelSelector {
     
     // Draw title "Levels" with same style as start screen
     const fontSize = isMobile ? 32 : 48;
-    const titleY = isMobile ? 50 : 60;
+    const titleY = safeAreaTop + (isMobile ? 40 : 50);
     const shadowOffset = fontSize * 0.08;
     
     renderCtx.font = `${fontSize}px 'Press Start 2P', monospace`;
@@ -370,8 +398,8 @@ export class LevelSelector {
     renderCtx.fillStyle = "#333333";
     renderCtx.fillText("Levels", width / 2, titleY);
     
-    // Define scrollable area (below title, above hint text)
-    const titleHeight = isMobile ? 80 : 100;
+    // Define scrollable area (below title with safe area, above hint text)
+    const titleHeight = safeAreaTop + (isMobile ? 80 : 100);
     const bottomPadding = isMobile ? 80 : 100;
     const scrollableTop = titleHeight;
     const scrollableBottom = height - bottomPadding;
@@ -610,6 +638,7 @@ export class LevelSelector {
     this.lineAnimationProgress = 0;
     this.animationStartTime = null;
     this.buttonRipples = [];
+    this.layoutNeedsUpdate = true; // Force layout recalculation
     for (const button of this.buttons) {
       button.hoverScale = 1;
       button.clickScale = 1;
@@ -629,7 +658,8 @@ export class LevelSelector {
     this.maxUnlockedLevel = maxLevel;
     // Set the latest unlocked level as selected (enlarged)
     this.selectedButtonLevel = maxLevel;
-    // Buttons will be updated on next render via calculateLayout
+    // Force layout recalculation to update locked states
+    this.layoutNeedsUpdate = true;
   }
 
   private drawStar(
